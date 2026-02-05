@@ -1,21 +1,24 @@
-"use client"
+"use client";
 
-import { Building2, LogOut, Settings } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation";
+import { Building2, LogOut, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
 
-interface AppHeaderProps {
-  onSettingsClick: () => void
-}
+export function AppHeader() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
-export function AppHeader({ onSettingsClick }: AppHeaderProps) {
-  const { user, logout } = useAuth()
   const currentDate = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-  })
+  });
+
+  const handleSettingsClick = () => {
+    router.push("/settings");
+  };
 
   return (
     <header className="border-b bg-card">
@@ -25,7 +28,9 @@ export function AppHeader({ onSettingsClick }: AppHeaderProps) {
             <Building2 className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold">Real Estate Collection CRM</h1>
+            <h1 className="text-lg font-semibold">
+              Real Estate Collection CRM
+            </h1>
             <p className="text-xs text-muted-foreground">
               Complete Developer & Customer Management System
             </p>
@@ -33,10 +38,12 @@ export function AppHeader({ onSettingsClick }: AppHeaderProps) {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-sm font-medium">Agent: {user?.name || "Guest"}</p>
+            <p className="text-sm font-medium">
+              Agent: {user?.name || "Guest"}
+            </p>
             <p className="text-xs text-muted-foreground">{currentDate}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onSettingsClick}>
+          <Button variant="ghost" size="icon" onClick={handleSettingsClick}>
             <Settings className="h-5 w-5" />
             <span className="sr-only">Settings</span>
           </Button>
@@ -47,5 +54,5 @@ export function AppHeader({ onSettingsClick }: AppHeaderProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }

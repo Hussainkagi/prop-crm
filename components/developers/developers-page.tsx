@@ -24,7 +24,7 @@ const initialDevelopers: Developer[] = [
   },
 ];
 
-export function DevelopersPage() {
+function DevelopersPage() {
   const [developers, setDevelopers] = useState<Developer[]>(initialDevelopers);
   const [showForm, setShowForm] = useState(false);
 
@@ -78,3 +78,5 @@ export function DevelopersPage() {
     </div>
   );
 }
+
+export default DevelopersPage;

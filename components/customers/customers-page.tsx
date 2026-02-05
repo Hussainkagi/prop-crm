@@ -53,7 +53,7 @@ const initialCustomers: Customer[] = [
   },
 ];
 
-export function CustomersPage() {
+function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [showForm, setShowForm] = useState(false);
 
@@ -181,3 +181,5 @@ export function CustomersPage() {
     </div>
   );
 }
+
+export default CustomersPage;
