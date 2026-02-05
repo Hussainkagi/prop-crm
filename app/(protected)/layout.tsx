@@ -3,15 +3,20 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { LoginForm } from "@/components/auth/login-form";
+import { AppHeader } from "@/components/layout/app-header";
+import { AppNavigation } from "@/components/layout/app-navigation";
 
-export default function Page() {
+export default function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.replace("/dashboard");
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/");
     }
   }, [isLoading, isAuthenticated, router]);
 
@@ -23,7 +28,13 @@ export default function Page() {
     );
   }
 
-  if (isAuthenticated) return null;
+  if (!isAuthenticated) return null;
 
-  return <LoginForm onSuccess={() => router.replace("/dashboard")} />;
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <AppHeader />
+      <AppNavigation />
+      <main className="flex-1 p-6">{children}</main>
+    </div>
+  );
 }

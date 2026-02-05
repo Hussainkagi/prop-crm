@@ -40,7 +40,7 @@ const initialProjects: Project[] = [
   },
 ];
 
-export function ProjectsPage() {
+function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [showForm, setShowForm] = useState(false);
 
@@ -157,3 +157,5 @@ export function ProjectsPage() {
     </div>
   );
 }
+
+export default ProjectsPage;

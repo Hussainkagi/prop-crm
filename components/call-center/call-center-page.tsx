@@ -16,6 +16,7 @@ import {
   type Customer,
 } from "./PriorityCard/priority-card";
 import { CallDialog, type CallData } from "./forms/call-log-form";
+import CustomersPage from "./AllCustomer/customer";
 
 const prioritizedCustomers: Customer[] = [
   {
@@ -65,10 +66,10 @@ const prioritizedCustomers: Customer[] = [
   },
 ];
 
-export function CallCenterPage() {
-  const [activeTab, setActiveTab] = useState<"followups" | "prioritized">(
-    "followups",
-  );
+function CallCenterPage() {
+  const [activeTab, setActiveTab] = useState<
+    "followups" | "prioritized" | "all"
+  >("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("overdue");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
@@ -106,11 +107,17 @@ export function CallCenterPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Call Center Operations</h1>
-      </div>
-
       <div className="flex gap-2">
+        <Button
+          variant={activeTab === "all" ? "default" : "outline"}
+          onClick={() => setActiveTab("all")}
+          className={
+            activeTab === "all" ? "bg-orange-500 hover:bg-orange-600" : ""
+          }
+        >
+          <Users className="mr-2 h-4 w-4" />
+          All Customer
+        </Button>
         <Button
           variant={activeTab === "followups" ? "default" : "outline"}
           onClick={() => setActiveTab("followups")}
@@ -165,7 +172,7 @@ export function CallCenterPage() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === "prioritized" ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -213,6 +220,8 @@ export function CallCenterPage() {
             </div>
           )}
         </div>
+      ) : (
+        <CustomersPage />
       )}
 
       <CallDialog
@@ -224,3 +233,5 @@ export function CallCenterPage() {
     </div>
   );
 }
+
+export default CallCenterPage;

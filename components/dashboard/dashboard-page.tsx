@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { IndianRupee, TrendingUp, Users, Phone } from "lucide-react"
-import { StatCard } from "./stat-card"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { IndianRupee, TrendingUp, Users, Phone } from "lucide-react";
+import { StatCard } from "./stat-card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Bar,
   BarChart,
@@ -14,11 +14,11 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
-} from "recharts"
+} from "recharts";
 
 const projectData = [
   { name: "Skyline Heights", collected: 13000000, due: 11000000 },
-]
+];
 
 const monthlyData = [
   { month: "Sep", collected: 5000000, target: 4500000 },
@@ -27,9 +27,9 @@ const monthlyData = [
   { month: "Dec", collected: 6000000, target: 5800000 },
   { month: "Jan", collected: 7500000, target: 8000000 },
   { month: "Feb", collected: 13000000, target: 20000000 },
-]
+];
 
-export function DashboardPage() {
+function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard & Reports</h1>
@@ -71,26 +71,47 @@ export function DashboardPage() {
         {/* Project-wise Collection */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">Project-wise Collection</CardTitle>
+            <CardTitle className="text-base font-medium">
+              Project-wise Collection
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={projectData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted"
+                  />
                   <XAxis dataKey="name" className="text-xs" />
-                  <YAxis className="text-xs" tickFormatter={(value) => `${value / 1000000}M`} />
+                  <YAxis
+                    className="text-xs"
+                    tickFormatter={(value) => `${value / 1000000}M`}
+                  />
                   <Tooltip
-                    formatter={(value: number) => [`₹${(value / 10000000).toFixed(2)}Cr`, ""]}
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
+                    formatter={(value: number) => [
+                      `₹${(value / 10000000).toFixed(2)}Cr`,
+                      "",
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
                       borderColor: "hsl(var(--border))",
-                      borderRadius: "8px"
+                      borderRadius: "8px",
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="collected" name="Collected" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="due" name="Due" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="collected"
+                    name="Collected"
+                    fill="#22c55e"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="due"
+                    name="Due"
+                    fill="#ef4444"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -100,21 +121,32 @@ export function DashboardPage() {
         {/* Monthly Collection Trend */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">Monthly Collection Trend</CardTitle>
+            <CardTitle className="text-base font-medium">
+              Monthly Collection Trend
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted"
+                  />
                   <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" tickFormatter={(value) => `${value / 1000000}M`} />
+                  <YAxis
+                    className="text-xs"
+                    tickFormatter={(value) => `${value / 1000000}M`}
+                  />
                   <Tooltip
-                    formatter={(value: number) => [`₹${(value / 10000000).toFixed(2)}Cr`, ""]}
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
+                    formatter={(value: number) => [
+                      `₹${(value / 10000000).toFixed(2)}Cr`,
+                      "",
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
                       borderColor: "hsl(var(--border))",
-                      borderRadius: "8px"
+                      borderRadius: "8px",
                     }}
                   />
                   <Legend />
@@ -173,5 +205,6 @@ export function DashboardPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
+export default DashboardPage;

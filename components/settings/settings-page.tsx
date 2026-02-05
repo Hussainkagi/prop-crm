@@ -1,11 +1,17 @@
-"use client"
+"use client";
 
-import { Moon, Sun, Palette } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { useTheme } from "@/contexts/theme-context"
-import { cn } from "@/lib/utils"
+import { Moon, Sun, Palette } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useTheme } from "@/contexts/theme-context";
+import { cn } from "@/lib/utils";
 
 const themeColors = [
   { value: "blue", label: "Blue", color: "bg-blue-500" },
@@ -14,16 +20,18 @@ const themeColors = [
   { value: "orange", label: "Orange", color: "bg-orange-500" },
   { value: "red", label: "Red", color: "bg-red-500" },
   { value: "teal", label: "Teal", color: "bg-teal-500" },
-] as const
+] as const;
 
-export function SettingsPage() {
-  const { mode, color, setMode, setColor } = useTheme()
+function SettingsPage() {
+  const { mode, color, setMode, setColor } = useTheme();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your application preferences</p>
+        <p className="text-muted-foreground">
+          Manage your application preferences
+        </p>
       </div>
 
       <div className="grid gap-6">
@@ -31,7 +39,11 @@ export function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {mode === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+              {mode === "dark" ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
               Appearance
             </CardTitle>
             <CardDescription>
@@ -50,7 +62,9 @@ export function SettingsPage() {
               <Switch
                 id="dark-mode"
                 checked={mode === "dark"}
-                onCheckedChange={(checked) => setMode(checked ? "dark" : "light")}
+                onCheckedChange={(checked) =>
+                  setMode(checked ? "dark" : "light")
+                }
               />
             </div>
           </CardContent>
@@ -77,16 +91,15 @@ export function SettingsPage() {
                     "flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all hover:bg-muted",
                     color === themeColor.value
                       ? "border-primary bg-muted"
-                      : "border-transparent"
+                      : "border-transparent",
                   )}
                 >
                   <div
-                    className={cn(
-                      "h-8 w-8 rounded-full",
-                      themeColor.color
-                    )}
+                    className={cn("h-8 w-8 rounded-full", themeColor.color)}
                   />
-                  <span className="text-xs font-medium">{themeColor.label}</span>
+                  <span className="text-xs font-medium">
+                    {themeColor.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -119,5 +132,7 @@ export function SettingsPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
+
+export default SettingsPage;
