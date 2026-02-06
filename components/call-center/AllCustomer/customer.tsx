@@ -237,7 +237,7 @@ function CustomersPage() {
   ];
 
   const handleRowClick = (customer: Customer) => {
-    router.push(`/customers/${customer.id}`);
+    router.push(`/call-center/${customer.id}`);
   };
 
   return (

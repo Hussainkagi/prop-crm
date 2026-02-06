@@ -19,8 +19,6 @@ export interface DeveloperFormData {
   companyInfo: {
     companyName: string;
     companyType: string;
-    panNumber: string;
-    gstNumber: string;
     incorporationDate: string;
   };
   kycDocuments: {
@@ -43,8 +41,6 @@ const initialFormData: DeveloperFormData = {
   companyInfo: {
     companyName: "",
     companyType: "private-limited",
-    panNumber: "",
-    gstNumber: "",
     incorporationDate: "",
   },
   kycDocuments: {
@@ -110,10 +106,10 @@ export function RegisterDeveloperForm({
               data={formData.companyInfo}
               onChange={handleCompanyInfoChange}
             />
-            <KycDocumentsForm
+            {/* <KycDocumentsForm
               data={formData.kycDocuments}
               onChange={handleKycChange}
-            />
+            /> */}
             <AddressForm
               data={formData.address}
               onChange={handleAddressChange}
