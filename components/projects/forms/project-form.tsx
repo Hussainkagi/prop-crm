@@ -24,7 +24,9 @@ export interface ProjectFormData {
   };
   details: {
     totalValue: string;
+    totalBlocks: string;
     totalUnits: string;
+    reraNumber: string;
     launchDate: string;
     expectedCompletion: string;
   };
@@ -55,6 +57,8 @@ export function RegisterProjectForm({
     },
     details: {
       totalUnits: "",
+      totalBlocks: "",
+      reraNumber: "",
       launchDate: "",
       expectedCompletion: "",
       totalValue: "",
@@ -229,6 +233,22 @@ export function RegisterProjectForm({
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="totalBlocks">Total Blocks</Label>
+                <Input
+                  id="totalBlocks"
+                  type="number"
+                  value={formData.details.totalBlocks}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      details: { ...prev.details, totalBlocks: e.target.value },
+                    }))
+                  }
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="totalUnits">Total Units *</Label>
                 <Input
                   id="totalUnits"
@@ -241,6 +261,22 @@ export function RegisterProjectForm({
                     }))
                   }
                   placeholder="0"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reraNumber">RERA Number *</Label>
+                <Input
+                  id="reraNumber"
+                  value={formData.details.reraNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      details: { ...prev.details, reraNumber: e.target.value },
+                    }))
+                  }
+                  placeholder="Enter RERA number"
                   required
                 />
               </div>
