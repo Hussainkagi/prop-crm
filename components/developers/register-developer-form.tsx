@@ -7,7 +7,6 @@ import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyInfoForm } from "./forms/company-info-form";
-import { KycDocumentsForm } from "./forms/kyc-documents-form";
 import { AddressForm } from "./forms/address-form";
 
 interface RegisterDeveloperFormProps {
@@ -20,12 +19,10 @@ export interface DeveloperFormData {
     companyName: string;
     companyType: string;
     incorporationDate: string;
-  };
-  kycDocuments: {
-    pan: boolean;
-    gst: boolean;
-    incorporation: boolean;
-    addressProof: boolean;
+    companyEmail: string;
+    contactPersonName: string;
+    contactPersonMobile: string;
+    companyPhoneNumber: string;
   };
   address: {
     addressLine1: string;
@@ -42,12 +39,10 @@ const initialFormData: DeveloperFormData = {
     companyName: "",
     companyType: "private-limited",
     incorporationDate: "",
-  },
-  kycDocuments: {
-    pan: false,
-    gst: false,
-    incorporation: false,
-    addressProof: false,
+    companyEmail: "",
+    contactPersonName: "",
+    contactPersonMobile: "",
+    companyPhoneNumber: "",
   },
   address: {
     addressLine1: "",
@@ -69,13 +64,6 @@ export function RegisterDeveloperForm({
     setFormData((prev) => ({
       ...prev,
       companyInfo: { ...prev.companyInfo, [field]: value },
-    }));
-  };
-
-  const handleKycChange = (field: string, value: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      kycDocuments: { ...prev.kycDocuments, [field]: value },
     }));
   };
 
@@ -106,10 +94,7 @@ export function RegisterDeveloperForm({
               data={formData.companyInfo}
               onChange={handleCompanyInfoChange}
             />
-            {/* <KycDocumentsForm
-              data={formData.kycDocuments}
-              onChange={handleKycChange}
-            /> */}
+
             <AddressForm
               data={formData.address}
               onChange={handleAddressChange}

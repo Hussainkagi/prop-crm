@@ -15,6 +15,10 @@ interface CompanyInfoFormProps {
     companyName: string;
     companyType: string;
     incorporationDate: string;
+    companyEmail: string;
+    contactPersonName: string;
+    contactPersonMobile: string;
+    companyPhoneNumber: string;
   };
   onChange: (field: string, value: string) => void;
 }
@@ -65,6 +69,61 @@ export function CompanyInfoForm({ data, onChange }: CompanyInfoFormProps) {
             value={data.incorporationDate}
             onChange={(e) => onChange("incorporationDate", e.target.value)}
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="companyEmail">
+            Company Email ID <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="companyEmail"
+            type="email"
+            value={data.companyEmail}
+            onChange={(e) => onChange("companyEmail", e.target.value)}
+            placeholder="company@example.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contactPersonName">
+            Contact Person Name <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="contactPersonName"
+            value={data.contactPersonName}
+            onChange={(e) => onChange("contactPersonName", e.target.value)}
+            placeholder="Enter contact person name"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contactPersonMobile">
+            Contact Person Mobile <span className="text-destructive">*</span>
+          </Label>
+          <div className="flex gap-2">
+            <Input value="+971" disabled className="w-20 bg-muted" />
+            <Input
+              id="contactPersonMobile"
+              type="tel"
+              value={data.contactPersonMobile}
+              onChange={(e) => onChange("contactPersonMobile", e.target.value)}
+              placeholder="50 123 4567"
+              className="flex-1"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="companyPhoneNumber">
+            Company Phone Number <span className="text-destructive">*</span>
+          </Label>
+          <div className="flex gap-2">
+            <Input value="+971" disabled className="w-20 bg-muted" />
+            <Input
+              id="companyPhoneNumber"
+              type="tel"
+              value={data.companyPhoneNumber}
+              onChange={(e) => onChange("companyPhoneNumber", e.target.value)}
+              placeholder="4 123 4567"
+              className="flex-1"
+            />
+          </div>
         </div>
       </div>
     </div>
