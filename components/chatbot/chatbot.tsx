@@ -24,45 +24,69 @@ interface QuickQuestion {
 const quickQuestions: QuickQuestion[] = [
   {
     id: "1",
-    question: "What are your store hours?",
-    answer:
-      "Our store is open Monday-Friday: 9:00 AM - 8:00 PM, Saturday: 10:00 AM - 6:00 PM, and Sunday: 11:00 AM - 5:00 PM.",
-    category: "Store Hours",
+    question: "Hello",
+    answer: "Hello! How can I assist you today?",
+    category: "Greeting",
   },
   {
     id: "2",
-    question: "How can I track my order?",
+    question: "What are your working hours?",
     answer:
-      "You can track your order by logging into your account and visiting the 'Order History' section. You'll receive a tracking number via email once your order ships.",
-    category: "Order Tracking",
+      "We're open Monday to Friday, 9 AM to 6 PM EST. How else can I help you?",
+    category: "Business Hours",
   },
   {
     id: "3",
-    question: "What is your return policy?",
+    question: "Loan or delivery related query",
     answer:
-      "We offer a 30-day return policy for most items. Products must be unused and in original packaging. Returns are free, and refunds are processed within 5-7 business days.",
-    category: "Returns",
+      "Please share your registered Loan Account Number or input your registered Mobile Number.",
+    category: "Loan & Delivery",
   },
   {
     id: "4",
-    question: "What shipping options do you offer?",
+    question: "How do I return or get a refund?",
     answer:
-      "We offer Standard Shipping (5-7 days), Express Shipping (2-3 days), and Next-Day Delivery. Free shipping is available on orders over $50.",
-    category: "Shipping Info",
+      "We accept returns within 30 days of purchase. Items must be unused and in original packaging. Would you like me to start a return process?",
+    category: "Returns & Refunds",
   },
   {
     id: "5",
-    question: "What payment methods do you accept?",
-    answer:
-      "We accept all major credit cards (Visa, MasterCard, American Express), PayPal, Google Pay, Apple Pay, and UPI for Indian customers.",
-    category: "Payments",
+    question: "What is my payment due date or cost?",
+    answer: "Would you like to know your payment due date?",
+    category: "Billing",
   },
   {
     id: "6",
-    question: "How can I contact customer support?",
+    question: "How can I contact support?",
     answer:
-      "You can reach us via email at support@company.com, call us at +91-1800-123-4567, or use this chat. We typically reply within minutes during business hours.",
-    category: "Contact Us",
+      "You can reach us at support@company.com or call 1-800-123-4567. Is there anything else I can help with?",
+    category: "Contact",
+  },
+  {
+    id: "7",
+    question: "How can I track my order?",
+    answer:
+      "To track your order, please provide your Property Sale order number. You can also check your order status in your account dashboard.",
+    category: "Order Tracking",
+  },
+  {
+    id: "8",
+    question: "What payment methods do you accept?",
+    answer:
+      "We accept all major credit cards, PayPal, and Apple Pay. All payments are secure and encrypted.",
+    category: "Payments",
+  },
+  {
+    id: "9",
+    question: "Thank you",
+    answer: "You're welcome! Is there anything else I can help you with?",
+    category: "Courtesy",
+  },
+  {
+    id: "10",
+    question: "Goodbye",
+    answer: "Thank you for contacting us! Have a great day!",
+    category: "Exit",
   },
 ];
 
@@ -114,7 +138,6 @@ export function ChatbotWidget() {
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
 
-    // Add user message
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       text: inputValue,
@@ -125,7 +148,6 @@ export function ChatbotWidget() {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
 
-    // Simple keyword matching for responses
     setTimeout(() => {
       let response =
         "I'm sorry, I didn't quite understand that. Please try selecting one of the quick questions above, or contact our support team for personalized assistance.";
@@ -138,31 +160,50 @@ export function ChatbotWidget() {
         lowerInput.includes("open") ||
         lowerInput.includes("timing")
       ) {
-        response = quickQuestions[0].answer;
-      } else if (
-        lowerInput.includes("track") ||
-        lowerInput.includes("order") ||
-        lowerInput.includes("delivery")
-      ) {
-        response = quickQuestions[1].answer;
+        response =
+          quickQuestions.find((q) => q.category === "Business Hours")?.answer ||
+          response;
+      } else if (lowerInput.includes("track") || lowerInput.includes("order")) {
+        response =
+          quickQuestions.find((q) => q.category === "Order Tracking")?.answer ||
+          response;
       } else if (
         lowerInput.includes("return") ||
         lowerInput.includes("refund")
       ) {
-        response = quickQuestions[2].answer;
+        response =
+          quickQuestions.find((q) => q.category === "Returns & Refunds")
+            ?.answer || response;
       } else if (
         lowerInput.includes("ship") ||
         lowerInput.includes("delivery")
       ) {
-        response = quickQuestions[3].answer;
+        response =
+          quickQuestions.find((q) => q.category === "Loan & Delivery")
+            ?.answer || response;
       } else if (lowerInput.includes("payment") || lowerInput.includes("pay")) {
-        response = quickQuestions[4].answer;
+        response =
+          quickQuestions.find((q) => q.category === "Billing")?.answer ||
+          response;
       } else if (
         lowerInput.includes("contact") ||
         lowerInput.includes("support") ||
         lowerInput.includes("help")
       ) {
-        response = quickQuestions[5].answer;
+        response =
+          quickQuestions.find((q) => q.category === "Contact")?.answer ||
+          response;
+      } else if (lowerInput.includes("hello") || lowerInput.includes("hi")) {
+        response =
+          quickQuestions.find((q) => q.category === "Greeting")?.answer ||
+          response;
+      } else if (lowerInput.includes("thank")) {
+        response =
+          quickQuestions.find((q) => q.category === "Courtesy")?.answer ||
+          response;
+      } else if (lowerInput.includes("bye") || lowerInput.includes("goodbye")) {
+        response =
+          quickQuestions.find((q) => q.category === "Exit")?.answer || response;
       }
 
       const botMessage: Message = {
