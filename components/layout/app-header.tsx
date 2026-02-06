@@ -28,10 +28,10 @@ export function AppHeader() {
             <Building2 className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-xl font-semibold">
               Real Estate Collection CRM
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-md text-muted-foreground">
               Complete Developer & Customer Management System
             </p>
           </div>

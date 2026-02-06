@@ -74,13 +74,13 @@ export function AppNavigation() {
               key={item.id}
               onClick={() => router.push(item.href)}
               className={cn(
-                "flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors",
+                "flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors md:text-base lg:gap-3 lg:px-5 lg:py-4",
                 isActive
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground",
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 lg:h-5 lg:w-5" />
               <span className="whitespace-nowrap">{item.label}</span>
             </button>
           );
