@@ -14,12 +14,9 @@ const initialDevelopers: Developer[] = [
     id: "1",
     companyName: "Skyline Builders Pvt Ltd",
     companyType: "Private Limited",
-    pan: "AABCS1234F",
-    gst: "27AABCS1234F1Z5",
     contact: "Rajesh Kumar",
     phone: "+91 9876543210",
     location: "Mumbai, Maharashtra",
-    kycStatus: "VERIFIED",
     status: "ACTIVE",
   },
 ];
@@ -33,12 +30,10 @@ function DevelopersPage() {
       id: Date.now().toString(),
       companyName: data.companyInfo.companyName,
       companyType: data.companyInfo.companyType,
-      pan: data.companyInfo.panNumber,
-      gst: data.companyInfo.gstNumber,
       contact: "New Contact",
       phone: "+91 0000000000",
       location: `${data.address.city}, ${data.address.state}`,
-      kycStatus: "PENDING",
+
       status: "ACTIVE",
     };
     setDevelopers((prev) => [...prev, newDeveloper]);

@@ -100,10 +100,10 @@ function CustomersPage() {
         />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-4">
             {customers.map((customer) => (
               <Card key={customer.id}>
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
@@ -131,39 +131,41 @@ function CustomersPage() {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-4 w-4" />
-                      <span>{customer.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      <span>{customer.email}</span>
-                    </div>
-                  </div>
-                  <div className="border-t pt-3">
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Total</p>
-                        <p className="font-medium">{customer.totalAmount}</p>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="h-4 w-4" />
+                        <span>{customer.phone}</span>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Paid</p>
-                        <p className="font-medium text-green-600">
-                          {customer.paidAmount}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Due</p>
-                        <p className="font-medium text-red-600">
-                          {customer.dueAmount}
-                        </p>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <span>{customer.email}</span>
                       </div>
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Next Due: {customer.nextDueDate}
-                    </p>
+                    <div>
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Total</p>
+                          <p className="font-medium">{customer.totalAmount}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Paid</p>
+                          <p className="font-medium text-green-600">
+                            {customer.paidAmount}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Due</p>
+                          <p className="font-medium text-red-600">
+                            {customer.dueAmount}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Next Due: {customer.nextDueDate}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

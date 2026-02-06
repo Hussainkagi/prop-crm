@@ -1,43 +1,49 @@
-"use client"
+"use client";
 
-import React from "react"
+import React from "react";
 
-import { useState } from "react"
-import { Building2, Eye, EyeOff, User, Lock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/contexts/auth-context"
+import { useState } from "react";
+import { Building2, Eye, EyeOff, User, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAuth } from "@/contexts/auth-context";
 
 interface LoginFormProps {
-  onSuccess: () => void
+  onSuccess: () => void;
 }
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
-  const [userId, setUserId] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const success = login(userId, password)
+    const success = login(userId, password);
     if (success) {
-      onSuccess()
+      onSuccess();
     } else {
-      setError("Invalid User ID or Password")
+      setError("Invalid User ID or Password");
     }
-    setIsLoading(false)
-  }
+    setIsLoading(false);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
@@ -47,7 +53,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             <Building2 className="h-8 w-8" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Real Estate Collection CRM</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Real Estate Collection CRM
+            </CardTitle>
             <CardDescription className="mt-2">
               Complete Developer & Customer Management System
             </CardDescription>
@@ -88,7 +96,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -99,12 +111,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Demo Credentials:</p>
-            <p className="font-mono">User ID: user001 | Password: 12345678</p>
-          </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

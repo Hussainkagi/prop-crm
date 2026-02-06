@@ -21,7 +21,6 @@ export interface ProjectFormData {
     developer: string;
     location: string;
     type: string;
-    reraNumber: string;
   };
   details: {
     totalValue: string;
@@ -53,7 +52,6 @@ export function RegisterProjectForm({
       developer: "",
       location: "",
       type: "residential",
-      reraNumber: "",
     },
     details: {
       totalUnits: "",
@@ -243,25 +241,6 @@ export function RegisterProjectForm({
                     }))
                   }
                   placeholder="0"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reraNumber">RERA Number *</Label>
-                <Input
-                  id="reraNumber"
-                  value={formData.projectInfo.reraNumber}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      projectInfo: {
-                        ...prev.projectInfo,
-                        reraNumber: e.target.value,
-                      },
-                    }))
-                  }
-                  placeholder="Enter RERA number"
                   required
                 />
               </div>

@@ -81,10 +81,10 @@ function ProjectsPage() {
         />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-4">
             {projects.map((project) => (
               <Card key={project.id}>
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{project.name}</CardTitle>
                     <Badge
@@ -100,21 +100,23 @@ function ProjectsPage() {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Building className="h-4 w-4" />
-                    <span>{project.developer}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span>{project.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>Started: {project.startDate}</span>
-                  </div>
-                  <div className="border-t pt-3">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Building className="h-4 w-4" />
+                        <span>{project.developer}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        <span>{project.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>Started: {project.startDate}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8 text-sm">
                       <div>
                         <span className="text-muted-foreground">Units:</span>{" "}
                         <span className="font-medium">
@@ -128,7 +130,7 @@ function ProjectsPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="mt-2 flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-sm">
                       <IndianRupee className="h-4 w-4 text-muted-foreground" />
                       <span>
                         <span className="font-medium text-green-600">
