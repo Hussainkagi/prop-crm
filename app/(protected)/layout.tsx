@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppNavigation } from "@/components/layout/app-navigation";
+import { ChatbotWidget } from "@/components/chatbot/chatbot"; // Add this
 
 export default function ProtectedLayout({
   children,
@@ -35,6 +36,7 @@ export default function ProtectedLayout({
       <AppHeader />
       <AppNavigation />
       <main className="flex-1 p-6">{children}</main>
+      <ChatbotWidget /> {/* Add this - only in protected pages */}
     </div>
   );
 }
