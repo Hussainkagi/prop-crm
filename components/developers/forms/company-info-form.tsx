@@ -13,12 +13,18 @@ import {
 interface CompanyInfoFormProps {
   data: {
     companyName: string;
-    companyType: string;
-    incorporationDate: string;
-    companyEmail: string;
+    registrationType: string;
+    registrationNumber: string;
     contactPersonName: string;
-    contactPersonMobile: string;
-    companyPhoneNumber: string;
+    mobilePrimary: string;
+    mobileAlternate: string;
+    emailPrimary: string;
+    emailAlternate: string;
+    websiteUrl: string;
+    yearsInBusiness: string;
+    totalProjectsCompleted: string;
+    reraRegistrationNumber: string;
+    creditRating: string;
   };
   onChange: (field: string, value: string) => void;
 }
@@ -40,15 +46,13 @@ export function CompanyInfoForm({ data, onChange }: CompanyInfoFormProps) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="companyType">
-            Company Type <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="registrationType">Registration Type</Label>
           <Select
-            value={data.companyType}
-            onValueChange={(value) => onChange("companyType", value)}
+            value={data.registrationType}
+            onValueChange={(value) => onChange("registrationType", value)}
           >
-            <SelectTrigger id="companyType">
-              <SelectValue placeholder="Select company type" />
+            <SelectTrigger id="registrationType">
+              <SelectValue placeholder="Select registration type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="private-limited">Private Limited</SelectItem>
@@ -60,26 +64,23 @@ export function CompanyInfoForm({ data, onChange }: CompanyInfoFormProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="incorporationDate">
-            Incorporation Date <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="registrationNumber">Registration Number</Label>
           <Input
-            id="incorporationDate"
-            type="date"
-            value={data.incorporationDate}
-            onChange={(e) => onChange("incorporationDate", e.target.value)}
+            id="registrationNumber"
+            value={data.registrationNumber}
+            onChange={(e) => onChange("registrationNumber", e.target.value)}
+            placeholder="Enter registration number"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="companyEmail">
-            Company Email ID <span className="text-destructive">*</span>
+          <Label htmlFor="reraRegistrationNumber">
+            RERA Registration Number
           </Label>
           <Input
-            id="companyEmail"
-            type="email"
-            value={data.companyEmail}
-            onChange={(e) => onChange("companyEmail", e.target.value)}
-            placeholder="company@example.com"
+            id="reraRegistrationNumber"
+            value={data.reraRegistrationNumber}
+            onChange={(e) => onChange("reraRegistrationNumber", e.target.value)}
+            placeholder="Enter RERA number"
           />
         </div>
         <div className="space-y-2">
@@ -94,36 +95,111 @@ export function CompanyInfoForm({ data, onChange }: CompanyInfoFormProps) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="contactPersonMobile">
-            Contact Person Mobile <span className="text-destructive">*</span>
+          <Label htmlFor="mobilePrimary">
+            Primary Mobile <span className="text-destructive">*</span>
           </Label>
           <div className="flex gap-2">
             <Input value="+971" disabled className="w-20 bg-muted" />
             <Input
-              id="contactPersonMobile"
+              id="mobilePrimary"
               type="tel"
-              value={data.contactPersonMobile}
-              onChange={(e) => onChange("contactPersonMobile", e.target.value)}
+              value={data.mobilePrimary}
+              onChange={(e) => onChange("mobilePrimary", e.target.value)}
               placeholder="50 123 4567"
               className="flex-1"
             />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="companyPhoneNumber">
-            Company Phone Number <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="mobileAlternate">Alternate Mobile</Label>
           <div className="flex gap-2">
             <Input value="+971" disabled className="w-20 bg-muted" />
             <Input
-              id="companyPhoneNumber"
+              id="mobileAlternate"
               type="tel"
-              value={data.companyPhoneNumber}
-              onChange={(e) => onChange("companyPhoneNumber", e.target.value)}
-              placeholder="4 123 4567"
+              value={data.mobileAlternate}
+              onChange={(e) => onChange("mobileAlternate", e.target.value)}
+              placeholder="50 123 4567"
               className="flex-1"
             />
           </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="emailPrimary">
+            Primary Email <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="emailPrimary"
+            type="email"
+            value={data.emailPrimary}
+            onChange={(e) => onChange("emailPrimary", e.target.value)}
+            placeholder="primary@example.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="emailAlternate">Alternate Email</Label>
+          <Input
+            id="emailAlternate"
+            type="email"
+            value={data.emailAlternate}
+            onChange={(e) => onChange("emailAlternate", e.target.value)}
+            placeholder="alternate@example.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="websiteUrl">Website URL</Label>
+          <Input
+            id="websiteUrl"
+            type="url"
+            value={data.websiteUrl}
+            onChange={(e) => onChange("websiteUrl", e.target.value)}
+            placeholder="https://www.example.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="yearsInBusiness">Years in Business</Label>
+          <Input
+            id="yearsInBusiness"
+            type="number"
+            value={data.yearsInBusiness}
+            onChange={(e) => onChange("yearsInBusiness", e.target.value)}
+            placeholder="5"
+            min="0"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="totalProjectsCompleted">
+            Total Projects Completed
+          </Label>
+          <Input
+            id="totalProjectsCompleted"
+            type="number"
+            value={data.totalProjectsCompleted}
+            onChange={(e) => onChange("totalProjectsCompleted", e.target.value)}
+            placeholder="10"
+            min="0"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="creditRating">Credit Rating</Label>
+          <Select
+            value={data.creditRating}
+            onValueChange={(value) => onChange("creditRating", value)}
+          >
+            <SelectTrigger id="creditRating">
+              <SelectValue placeholder="Select credit rating" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AAA">AAA</SelectItem>
+              <SelectItem value="AA">AA</SelectItem>
+              <SelectItem value="A">A</SelectItem>
+              <SelectItem value="BBB">BBB</SelectItem>
+              <SelectItem value="BB">BB</SelectItem>
+              <SelectItem value="B">B</SelectItem>
+              <SelectItem value="C">C</SelectItem>
+              <SelectItem value="D">D</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>

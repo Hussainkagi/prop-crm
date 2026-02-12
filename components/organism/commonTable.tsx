@@ -939,7 +939,7 @@ function CommonTable<T extends Record<string, any>>({
 
               return (
                 <tr
-                  key={rowId}
+                  key={rowIndex}
                   className={`${
                     striped && rowIndex % 2 === 0
                       ? "bg-secondary/50"
