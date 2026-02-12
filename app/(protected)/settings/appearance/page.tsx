@@ -22,20 +22,20 @@ const themeColors = [
   { value: "teal", label: "Teal", color: "bg-teal-500" },
 ] as const;
 
-function SettingsPage() {
+export default function AppearancePage() {
   const { mode, color, setMode, setColor } = useTheme();
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h2 className="text-2xl font-bold">Appearance</h2>
         <p className="text-muted-foreground">
-          Manage your application preferences
+          Customize how the application looks on your device
         </p>
       </div>
 
       <div className="grid gap-6">
-        {/* Appearance Card */}
+        {/* Dark Mode Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -44,19 +44,18 @@ function SettingsPage() {
               ) : (
                 <Sun className="h-5 w-5" />
               )}
-              Appearance
+              Dark Mode
             </CardTitle>
             <CardDescription>
-              Customize how the application looks on your device
+              Switch between light and dark theme
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Dark Mode Toggle */}
+          <CardContent>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="dark-mode">Dark Mode</Label>
+                <Label htmlFor="dark-mode">Enable Dark Mode</Label>
                 <p className="text-sm text-muted-foreground">
-                  Switch between light and dark theme
+                  Adjust the appearance to reduce eye strain
                 </p>
               </div>
               <Switch
@@ -105,34 +104,7 @@ function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Preview Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Preview</CardTitle>
-            <CardDescription>See how your theme looks</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <button className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                Primary Button
-              </button>
-              <button className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
-                Secondary Button
-              </button>
-              <button className="inline-flex items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90">
-                Destructive Button
-              </button>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="h-4 w-4 rounded-full bg-primary" />
-              <span className="text-sm">Primary color indicator</span>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
 }
-
-export default SettingsPage;

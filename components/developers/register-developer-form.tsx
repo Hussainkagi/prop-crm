@@ -17,40 +17,56 @@ interface RegisterDeveloperFormProps {
 export interface DeveloperFormData {
   companyInfo: {
     companyName: string;
-    companyType: string;
-    incorporationDate: string;
-    companyEmail: string;
+    registrationType: string;
+    registrationNumber: string;
     contactPersonName: string;
-    contactPersonMobile: string;
-    companyPhoneNumber: string;
+    mobilePrimary: string;
+    mobileAlternate: string;
+    emailPrimary: string;
+    emailAlternate: string;
+    websiteUrl: string;
+    yearsInBusiness: string;
+    totalProjectsCompleted: string;
+    reraRegistrationNumber: string;
+    creditRating: string;
   };
   address: {
-    addressLine1: string;
-    addressLine2: string;
-    city: string;
-    state: string;
-    pincode: string;
-    country: string;
+    corrAddressLine1: string;
+    corrAddressLine2: string;
+    corrCity: string;
+    corrState: string;
+    corrPincode: string;
+    corrCountry: string;
+    corrLandmark: string;
+    addressType: string;
   };
 }
 
 const initialFormData: DeveloperFormData = {
   companyInfo: {
     companyName: "",
-    companyType: "private-limited",
-    incorporationDate: "",
-    companyEmail: "",
+    registrationType: "",
+    registrationNumber: "",
     contactPersonName: "",
-    contactPersonMobile: "",
-    companyPhoneNumber: "",
+    mobilePrimary: "",
+    mobileAlternate: "",
+    emailPrimary: "",
+    emailAlternate: "",
+    websiteUrl: "",
+    yearsInBusiness: "",
+    totalProjectsCompleted: "",
+    reraRegistrationNumber: "",
+    creditRating: "",
   },
   address: {
-    addressLine1: "",
-    addressLine2: "",
-    city: "",
-    state: "",
-    pincode: "",
-    country: "India",
+    corrAddressLine1: "",
+    corrAddressLine2: "",
+    corrCity: "",
+    corrState: "",
+    corrPincode: "",
+    corrCountry: "UAE",
+    corrLandmark: "",
+    addressType: "Corresponding",
   },
 };
 
