@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building, X, Plus } from "lucide-react";
+import { Building, X, Plus, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,28 +14,48 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 
 export interface ProjectFormData {
-  projectInfo: {
-    name: string;
-    developer: string;
-    location: string;
-    type: string;
-  };
-  details: {
-    totalValue: string;
-    totalBlocks: string;
-    totalUnits: string;
-    reraNumber: string;
-    launchDate: string;
-    expectedCompletion: string;
-  };
+  // Basic Information
+  developer_id: string;
+  project_name: string;
+  project_type: string;
+  project_category: string;
+  rera_registration_number: string;
+
+  // Address Information
+  project_address_line1: string;
+  project_address_line2: string;
+  locality: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark: string;
+  latitude: string;
+  longitude: string;
+
+  // Project Details
+  total_land_area: string;
+  land_area_unit: string;
+  total_built_up_area: string;
+  number_of_towers: string;
+  total_units: string;
+
+  // Dates
+  launch_date: string;
+  expected_completion_date: string;
+  actual_completion_date: string;
+
+  // Status
+  project_status: string;
+  possession_status: string;
+  construction_stage_percentage: string;
+
+  // Amenities (stored as array, will be converted to JSON)
   amenities: string[];
-  propertyTypes: Array<{
-    type: string;
-    sizes: string;
-    count: string;
-  }>;
+
+  // Payment Plan
   selectedPaymentPlan: string;
 }
 
@@ -49,31 +69,59 @@ export function RegisterProjectForm({
   onCancel,
 }: RegisterProjectFormProps) {
   const [formData, setFormData] = useState<ProjectFormData>({
-    projectInfo: {
-      name: "",
-      developer: "",
-      location: "",
-      type: "residential",
-    },
-    details: {
-      totalUnits: "",
-      totalBlocks: "",
-      reraNumber: "",
-      launchDate: "",
-      expectedCompletion: "",
-      totalValue: "",
-    },
+    developer_id: "",
+    project_name: "",
+    project_type: "Residential",
+    project_category: "",
+    rera_registration_number: "",
+    project_address_line1: "",
+    project_address_line2: "",
+    locality: "",
+    city: "",
+    state: "",
+    pincode: "",
+    landmark: "",
+    latitude: "",
+    longitude: "",
+    total_land_area: "",
+    land_area_unit: "sq.ft",
+    total_built_up_area: "",
+    number_of_towers: "",
+    total_units: "",
+    launch_date: "",
+    expected_completion_date: "",
+    actual_completion_date: "",
+    project_status: "Under Construction",
+    possession_status: "Not Started",
+    construction_stage_percentage: "",
     amenities: [],
-    propertyTypes: [],
     selectedPaymentPlan: "",
   });
 
   const [currentAmenity, setCurrentAmenity] = useState("");
-  const [currentPropertyType, setCurrentPropertyType] = useState({
-    type: "",
-    sizes: "",
-    count: "",
-  });
+
+  const projectTypes = ["Residential", "Commercial", "Mixed Use"];
+  const projectCategories = [
+    "Luxury",
+    "Mid-Range",
+    "Affordable",
+    "Premium",
+    "Budget",
+  ];
+  const landAreaUnits = ["sq.ft", "sq.m", "acres", "hectares"];
+  const projectStatuses = [
+    "Planning",
+    "Under Construction",
+    "Completed",
+    "On Hold",
+    "Cancelled",
+  ];
+  const possessionStatuses = [
+    "Not Started",
+    "Ready to Move",
+    "Under Construction",
+    "Possession Given",
+  ];
 
   const paymentPlans = [
     {
@@ -87,6 +135,12 @@ export function RegisterProjectForm({
       name: "30-70 Plan",
       description: "30% down payment, balance in 24 monthly installments",
       downPayment: "30%",
+    },
+    {
+      id: "40-60",
+      name: "40-60 Plan",
+      description: "40% down payment, balance in 18 monthly installments",
+      downPayment: "40%",
     },
   ];
 
@@ -112,27 +166,6 @@ export function RegisterProjectForm({
     }));
   };
 
-  const addPropertyType = () => {
-    if (
-      currentPropertyType.type &&
-      currentPropertyType.sizes &&
-      currentPropertyType.count
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        propertyTypes: [...prev.propertyTypes, currentPropertyType],
-      }));
-      setCurrentPropertyType({ type: "", sizes: "", count: "" });
-    }
-  };
-
-  const removePropertyType = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      propertyTypes: prev.propertyTypes.filter((_, i) => i !== index),
-    }));
-  };
-
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-6 flex items-center gap-2">
@@ -141,49 +174,43 @@ export function RegisterProjectForm({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
               <Building className="h-4 w-4" />
-              Project Information
+              Basic Information
             </h3>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="developer">Developer *</Label>
+                <Label htmlFor="developer_id">Developer *</Label>
                 <Select
-                  value={formData.projectInfo.developer}
+                  value={formData.developer_id}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      projectInfo: { ...prev.projectInfo, developer: value },
-                    }))
+                    setFormData((prev) => ({ ...prev, developer_id: value }))
                   }
                 >
-                  <SelectTrigger id="developer">
+                  <SelectTrigger id="developer_id">
                     <SelectValue placeholder="Select Developer" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="skyline">
-                      Skyline Builders Pvt Ltd
-                    </SelectItem>
-                    <SelectItem value="other">Other Developer</SelectItem>
+                    <SelectItem value="1">Skyline Builders Pvt Ltd</SelectItem>
+                    <SelectItem value="2">Green Valley Developers</SelectItem>
+                    <SelectItem value="3">Metro Properties</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="projectName">Project Name *</Label>
+                <Label htmlFor="project_name">Project Name *</Label>
                 <Input
-                  id="projectName"
-                  value={formData.projectInfo.name}
+                  id="project_name"
+                  value={formData.project_name}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      projectInfo: {
-                        ...prev.projectInfo,
-                        name: e.target.value,
-                      },
+                      project_name: e.target.value,
                     }))
                   }
                   placeholder="Enter project name"
@@ -192,130 +219,64 @@ export function RegisterProjectForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
-                <Input
-                  id="location"
-                  value={formData.projectInfo.location}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      projectInfo: {
-                        ...prev.projectInfo,
-                        location: e.target.value,
-                      },
-                    }))
-                  }
-                  placeholder="Enter location"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="projectType">Project Type *</Label>
+                <Label htmlFor="project_type">Project Type *</Label>
                 <Select
-                  value={formData.projectInfo.type}
+                  value={formData.project_type}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      projectInfo: { ...prev.projectInfo, type: value },
-                    }))
+                    setFormData((prev) => ({ ...prev, project_type: value }))
                   }
                 >
-                  <SelectTrigger id="projectType">
+                  <SelectTrigger id="project_type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="residential">Residential</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
-                    <SelectItem value="mixed">Mixed Use</SelectItem>
+                    {projectTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="totalBlocks">Total Blocks</Label>
-                <Input
-                  id="totalBlocks"
-                  type="number"
-                  value={formData.details.totalBlocks}
-                  onChange={(e) =>
+                <Label htmlFor="project_category">Project Category</Label>
+                <Select
+                  value={formData.project_category}
+                  onValueChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
-                      details: { ...prev.details, totalBlocks: e.target.value },
+                      project_category: value,
                     }))
                   }
-                  placeholder="0"
-                />
+                >
+                  <SelectTrigger id="project_category">
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectCategories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="totalUnits">Total Units *</Label>
-                <Input
-                  id="totalUnits"
-                  type="number"
-                  value={formData.details.totalUnits}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      details: { ...prev.details, totalUnits: e.target.value },
-                    }))
-                  }
-                  placeholder="0"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reraNumber">RERA Number *</Label>
-                <Input
-                  id="reraNumber"
-                  value={formData.details.reraNumber}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      details: { ...prev.details, reraNumber: e.target.value },
-                    }))
-                  }
-                  placeholder="Enter RERA number"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="launchDate">Launch Date *</Label>
-                <Input
-                  id="launchDate"
-                  type="date"
-                  value={formData.details.launchDate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      details: { ...prev.details, launchDate: e.target.value },
-                    }))
-                  }
-                  placeholder="dd/mm/yyyy"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="expectedCompletion">
-                  Expected Completion *
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="rera_registration_number">
+                  RERA Registration Number *
                 </Label>
                 <Input
-                  id="expectedCompletion"
-                  type="date"
-                  value={formData.details.expectedCompletion}
+                  id="rera_registration_number"
+                  value={formData.rera_registration_number}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      details: {
-                        ...prev.details,
-                        expectedCompletion: e.target.value,
-                      },
+                      rera_registration_number: e.target.value,
                     }))
                   }
-                  placeholder="dd/mm/yyyy"
+                  placeholder="Enter RERA registration number"
                   required
                 />
               </div>
@@ -323,6 +284,385 @@ export function RegisterProjectForm({
           </CardContent>
         </Card>
 
+        {/* Address Information */}
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
+              <MapPin className="h-4 w-4" />
+              Address Information
+            </h3>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="project_address_line1">Address Line 1 *</Label>
+                <Input
+                  id="project_address_line1"
+                  value={formData.project_address_line1}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      project_address_line1: e.target.value,
+                    }))
+                  }
+                  placeholder="Street address, building number"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="project_address_line2">Address Line 2</Label>
+                <Input
+                  id="project_address_line2"
+                  value={formData.project_address_line2}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      project_address_line2: e.target.value,
+                    }))
+                  }
+                  placeholder="Apartment, suite, unit, floor, etc."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="locality">Locality *</Label>
+                <Input
+                  id="locality"
+                  value={formData.locality}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      locality: e.target.value,
+                    }))
+                  }
+                  placeholder="Area/Locality"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, city: e.target.value }))
+                  }
+                  placeholder="City"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="state">State *</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, state: e.target.value }))
+                  }
+                  placeholder="State"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pincode">Pincode *</Label>
+                <Input
+                  id="pincode"
+                  value={formData.pincode}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      pincode: e.target.value,
+                    }))
+                  }
+                  placeholder="Pincode"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="landmark">Landmark</Label>
+                <Input
+                  id="landmark"
+                  value={formData.landmark}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      landmark: e.target.value,
+                    }))
+                  }
+                  placeholder="Nearby landmark"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="latitude">Latitude</Label>
+                <Input
+                  id="latitude"
+                  type="number"
+                  step="0.00000001"
+                  value={formData.latitude}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      latitude: e.target.value,
+                    }))
+                  }
+                  placeholder="0.00000000"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="longitude">Longitude</Label>
+                <Input
+                  id="longitude"
+                  type="number"
+                  step="0.00000001"
+                  value={formData.longitude}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      longitude: e.target.value,
+                    }))
+                  }
+                  placeholder="0.00000000"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Project Details */}
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="mb-4 text-base font-semibold">Project Details</h3>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="total_land_area">Total Land Area</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="total_land_area"
+                    type="number"
+                    step="0.01"
+                    value={formData.total_land_area}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        total_land_area: e.target.value,
+                      }))
+                    }
+                    placeholder="0.00"
+                    className="flex-1"
+                  />
+                  <Select
+                    value={formData.land_area_unit}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        land_area_unit: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {landAreaUnits.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="total_built_up_area">
+                  Total Built-up Area (sq.ft)
+                </Label>
+                <Input
+                  id="total_built_up_area"
+                  type="number"
+                  step="0.01"
+                  value={formData.total_built_up_area}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      total_built_up_area: e.target.value,
+                    }))
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="number_of_towers">
+                  Number of Towers/Blocks
+                </Label>
+                <Input
+                  id="number_of_towers"
+                  type="number"
+                  value={formData.number_of_towers}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      number_of_towers: e.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="total_units">Total Units *</Label>
+                <Input
+                  id="total_units"
+                  type="number"
+                  value={formData.total_units}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      total_units: e.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                  required
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Dates & Status */}
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="mb-4 text-base font-semibold">Dates & Status</h3>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="launch_date">Launch Date *</Label>
+                <Input
+                  id="launch_date"
+                  type="date"
+                  value={formData.launch_date}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      launch_date: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="expected_completion_date">
+                  Expected Completion Date *
+                </Label>
+                <Input
+                  id="expected_completion_date"
+                  type="date"
+                  value={formData.expected_completion_date}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      expected_completion_date: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="actual_completion_date">
+                  Actual Completion Date
+                </Label>
+                <Input
+                  id="actual_completion_date"
+                  type="date"
+                  value={formData.actual_completion_date}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      actual_completion_date: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="project_status">Project Status *</Label>
+                <Select
+                  value={formData.project_status}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, project_status: value }))
+                  }
+                >
+                  <SelectTrigger id="project_status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectStatuses.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="possession_status">Possession Status</Label>
+                <Select
+                  value={formData.possession_status}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      possession_status: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger id="possession_status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {possessionStatuses.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="construction_stage_percentage">
+                  Construction Stage (%)
+                </Label>
+                <Input
+                  id="construction_stage_percentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.construction_stage_percentage}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      construction_stage_percentage: e.target.value,
+                    }))
+                  }
+                  placeholder="0-100"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Amenities */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">Amenities</h3>
@@ -331,7 +671,7 @@ export function RegisterProjectForm({
               <Input
                 value={currentAmenity}
                 onChange={(e) => setCurrentAmenity(e.target.value)}
-                placeholder="Enter amenity (e.g., Swimming Pool)"
+                placeholder="Enter amenity (e.g., Swimming Pool, Gym, Club House)"
                 onKeyPress={(e) =>
                   e.key === "Enter" && (e.preventDefault(), addAmenity())
                 }
@@ -369,78 +709,7 @@ export function RegisterProjectForm({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="mb-4 text-base font-semibold">Property Types</h3>
-
-            <div className="flex gap-2">
-              <Input
-                placeholder="Type (Flat/Villa)"
-                value={currentPropertyType.type}
-                onChange={(e) =>
-                  setCurrentPropertyType((prev) => ({
-                    ...prev,
-                    type: e.target.value,
-                  }))
-                }
-                className="flex-1"
-              />
-              <Input
-                placeholder="Sizes (1BHK, 2BHK)"
-                value={currentPropertyType.sizes}
-                onChange={(e) =>
-                  setCurrentPropertyType((prev) => ({
-                    ...prev,
-                    sizes: e.target.value,
-                  }))
-                }
-                className="flex-1"
-              />
-              <Input
-                type="number"
-                placeholder="0"
-                value={currentPropertyType.count}
-                onChange={(e) =>
-                  setCurrentPropertyType((prev) => ({
-                    ...prev,
-                    count: e.target.value,
-                  }))
-                }
-                className="w-24"
-              />
-              <Button
-                type="button"
-                onClick={addPropertyType}
-                className="shrink-0"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {formData.propertyTypes.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {formData.propertyTypes.map((pt, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between rounded-md border p-3"
-                  >
-                    <span className="text-sm">
-                      {pt.type}: {pt.sizes} ({pt.count} units)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removePropertyType(index)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+        {/* Payment Plan */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">

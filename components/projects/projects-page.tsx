@@ -12,31 +12,50 @@ import {
 
 interface Project {
   id: string;
-  name: string;
-  developer: string;
-  location: string;
-  type: string;
-  totalUnits: number;
-  soldUnits: number;
-  totalValue: string;
-  collectedValue: string;
-  status: "ACTIVE" | "COMPLETED" | "ON_HOLD";
-  startDate: string;
+  developer_id: string;
+  project_name: string;
+  project_type: string;
+  project_category: string;
+  rera_registration_number: string;
+  locality: string;
+  city: string;
+  state: string;
+  total_units: number;
+  sold_units: number;
+  number_of_towers: number;
+  project_status: string;
+  possession_status: string;
+  launch_date: string;
+  expected_completion_date: string;
+  construction_stage_percentage: number;
+  amenities: string[];
+  // Display helpers
+  developerName?: string;
+  fullAddress?: string;
 }
 
 const initialProjects: Project[] = [
   {
     id: "1",
-    name: "Skyline Heights",
-    developer: "Skyline Builders Pvt Ltd",
-    location: "Andheri East, Mumbai",
-    type: "Residential",
-    totalUnits: 120,
-    soldUnits: 85,
-    totalValue: "₹2.50Cr",
-    collectedValue: "₹1.30Cr",
-    status: "ACTIVE",
-    startDate: "2024-01-15",
+    developer_id: "1",
+    developerName: "Skyline Builders Pvt Ltd",
+    project_name: "Skyline Heights",
+    project_type: "Residential",
+    project_category: "Luxury",
+    rera_registration_number: "RERA/MH/2024/001",
+    locality: "Andheri East",
+    city: "Mumbai",
+    state: "Maharashtra",
+    fullAddress: "Andheri East, Mumbai, Maharashtra",
+    total_units: 120,
+    sold_units: 85,
+    number_of_towers: 3,
+    project_status: "Under Construction",
+    possession_status: "Under Construction",
+    launch_date: "2024-01-15",
+    expected_completion_date: "2026-12-31",
+    construction_stage_percentage: 45,
+    amenities: ["Swimming Pool", "Gym", "Club House", "Children's Play Area"],
   },
 ];
 
@@ -45,21 +64,60 @@ function ProjectsPage() {
   const [showForm, setShowForm] = useState(false);
 
   const handleRegister = (data: ProjectFormData) => {
+    // Map form data to project structure
     const project: Project = {
       id: Date.now().toString(),
-      name: data.projectInfo.name,
-      developer: data.projectInfo.developer,
-      location: data.projectInfo.location,
-      type: data.projectInfo.type,
-      totalUnits: parseInt(data.details.totalUnits) || 0,
-      soldUnits: 0,
-      totalValue: data.details.totalValue || "₹0",
-      collectedValue: "₹0",
-      status: "ACTIVE",
-      startDate: data.details.launchDate,
+      developer_id: data.developer_id,
+      developerName: getDeveloperName(data.developer_id), // Helper function to get name
+      project_name: data.project_name,
+      project_type: data.project_type,
+      project_category: data.project_category,
+      rera_registration_number: data.rera_registration_number,
+      locality: data.locality,
+      city: data.city,
+      state: data.state,
+      fullAddress: `${data.locality}, ${data.city}, ${data.state}`,
+      total_units: parseInt(data.total_units) || 0,
+      sold_units: 0,
+      number_of_towers: parseInt(data.number_of_towers) || 0,
+      project_status: data.project_status,
+      possession_status: data.possession_status,
+      launch_date: data.launch_date,
+      expected_completion_date: data.expected_completion_date,
+      construction_stage_percentage:
+        parseInt(data.construction_stage_percentage) || 0,
+      amenities: data.amenities,
     };
+
     setProjects((prev) => [...prev, project]);
     setShowForm(false);
+  };
+
+  // Helper function to map developer_id to name
+  const getDeveloperName = (developerId: string): string => {
+    const developerMap: Record<string, string> = {
+      "1": "Skyline Builders Pvt Ltd",
+      "2": "Green Valley Developers",
+      "3": "Metro Properties",
+    };
+    return developerMap[developerId] || "Unknown Developer";
+  };
+
+  const getStatusVariant = (
+    status: string,
+  ): "default" | "secondary" | "outline" | "destructive" => {
+    switch (status) {
+      case "Under Construction":
+        return "default";
+      case "Completed":
+        return "secondary";
+      case "On Hold":
+        return "outline";
+      case "Cancelled":
+        return "destructive";
+      default:
+        return "default";
+    }
   };
 
   return (
@@ -86,63 +144,121 @@ function ProjectsPage() {
               <Card key={project.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{project.name}</CardTitle>
-                    <Badge
-                      variant={
-                        project.status === "ACTIVE"
-                          ? "default"
-                          : project.status === "COMPLETED"
-                            ? "secondary"
-                            : "outline"
-                      }
-                    >
-                      {project.status}
-                    </Badge>
+                    <div>
+                      <CardTitle className="text-lg">
+                        {project.project_name}
+                      </CardTitle>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        RERA: {project.rera_registration_number}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge variant={getStatusVariant(project.project_status)}>
+                        {project.project_status}
+                      </Badge>
+                      {project.project_category && (
+                        <Badge variant="outline">
+                          {project.project_category}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-3">
+                    {/* Column 1: Basic Info */}
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Building className="h-4 w-4" />
-                        <span>{project.developer}</span>
+                        <span>{project.developerName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="h-4 w-4" />
-                        <span>{project.location}</span>
+                        <span>{project.fullAddress}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        <span>Started: {project.startDate}</span>
+                        <span>Launch: {project.launch_date}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-8 text-sm">
+
+                    {/* Column 2: Project Details */}
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Type:</span>{" "}
+                        <span className="font-medium">
+                          {project.project_type}
+                        </span>
+                      </div>
                       <div>
                         <span className="text-muted-foreground">Units:</span>{" "}
                         <span className="font-medium">
-                          {project.soldUnits}/{project.totalUnits}
+                          {project.sold_units}/{project.total_units}
+                        </span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          (
+                          {Math.round(
+                            (project.sold_units / project.total_units) * 100,
+                          )}
+                          % sold)
                         </span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Type:</span>{" "}
-                        <span className="font-medium capitalize">
-                          {project.type}
+                        <span className="text-muted-foreground">Towers:</span>{" "}
+                        <span className="font-medium">
+                          {project.number_of_towers}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        <span className="font-medium text-green-600">
-                          {project.collectedValue}
-                        </span>
+
+                    {/* Column 3: Status & Progress */}
+                    <div className="space-y-3 text-sm">
+                      <div>
                         <span className="text-muted-foreground">
-                          {" "}
-                          / {project.totalValue}
+                          Possession:
+                        </span>{" "}
+                        <span className="font-medium">
+                          {project.possession_status}
                         </span>
-                      </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          Completion:
+                        </span>{" "}
+                        <span className="font-medium">
+                          {project.expected_completion_date}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Progress:</span>{" "}
+                        <span className="font-medium">
+                          {project.construction_stage_percentage}%
+                        </span>
+                        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary">
+                          <div
+                            className="h-full bg-green-600 transition-all"
+                            style={{
+                              width: `${project.construction_stage_percentage}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Amenities */}
+                  {project.amenities && project.amenities.length > 0 && (
+                    <div className="mt-4 border-t pt-4">
+                      <p className="mb-2 text-sm font-medium">Amenities:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {project.amenities.map((amenity, index) => (
+                          <Badge key={index} variant="secondary">
+                            {amenity}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
