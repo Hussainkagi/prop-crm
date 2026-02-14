@@ -20,6 +20,13 @@ const settingsOptions = [
     description: "Customize how the application looks",
     path: "/settings/appearance",
   },
+  {
+    id: "payments",
+    label: "Payment Settings",
+    icon: Palette,
+    description: "Manage payment configurations and plans",
+    path: "/settings/payments",
+  },
 ] as const;
 
 interface SettingsLayoutProps {
