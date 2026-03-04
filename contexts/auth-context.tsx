@@ -8,26 +8,36 @@ import {
   type ReactNode,
 } from "react";
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+
 interface User {
-  userId: string;
-  name: string;
+  user_id: number;
+  username: string;
+  email_id: string;
+  first_name: string;
+  last_name: string;
+  mobile_number: string;
+  employee_code: string;
+  role_id: number;
+  department: string;
+  designation: string;
+  user_status: string;
+  last_login: string;
+  account_locked: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (userId: string, password: string) => boolean;
+  login: (
+    username: string,
+    password: string,
+  ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const VALID_USER = {
-  userId: "user001",
-  password: "12345678",
-  name: "Current Agent",
-};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -36,36 +46,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("crm_user");
-
     if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setIsAuthenticated(true);
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+      } catch {
+        localStorage.removeItem("crm_user");
+      }
     }
-
-    // 🔑 auth check finished
     setIsLoading(false);
   }, []);
 
-  const login = (userId: string, password: string): boolean => {
-    if (userId === VALID_USER.userId && password === VALID_USER.password) {
-      const loggedInUser = {
-        userId: VALID_USER.userId,
-        name: VALID_USER.name,
-      };
+  const login = async (
+    username: string,
+    password: string,
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const response = await fetch(`${BASE_URL}/users/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-      setUser(loggedInUser);
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        return {
+          success: false,
+          message: json.message || "Invalid credentials. Please try again.",
+        };
+      }
+
+      const { user: apiUser, tokens } = json.data;
+
+      setUser(apiUser);
       setIsAuthenticated(true);
-      localStorage.setItem("crm_user", JSON.stringify(loggedInUser));
-      return true;
+
+      localStorage.setItem("crm_user", JSON.stringify(apiUser));
+      localStorage.setItem("crm_access_token", tokens.accessToken);
+      localStorage.setItem("crm_refresh_token", tokens.refreshToken);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Login error:", error);
+      return {
+        success: false,
+        message: "Unable to connect to server. Please try again later.",
+      };
     }
-    return false;
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem("crm_user");
+    localStorage.removeItem("crm_access_token");
+    localStorage.removeItem("crm_refresh_token");
   };
 
   return (

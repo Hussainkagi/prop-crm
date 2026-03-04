@@ -29,7 +29,28 @@ interface CompanyInfoFormProps {
   onChange: (field: string, value: string) => void;
 }
 
+/**
+ * Strips the +971 / 971 / 0 country-code prefix from a pasted number
+ * so only the local part (9 digits starting with 5 or 4) remains in the field.
+ * If the input doesn't look like a UAE number, returns it as-is.
+ */
+function stripUAEPrefix(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  // Full: 971XXXXXXXXX → keep last 9
+  if (/^971[54]\d{8}$/.test(digits)) return digits.slice(3);
+  // Local with 0: 0501234567 → keep last 9
+  if (/^0[54]\d{8}$/.test(digits)) return digits.slice(1);
+  // Already local: 501234567
+  if (/^[54]\d{8}$/.test(digits)) return digits;
+  // Unknown format — return original so user can correct it
+  return raw;
+}
+
 export function CompanyInfoForm({ data, onChange }: CompanyInfoFormProps) {
+  const handleMobileChange = (field: string, value: string) => {
+    onChange(field, stripUAEPrefix(value));
+  };
+
   return (
     <div className="space-y-4 rounded-lg border p-4">
       <h3 className="font-semibold">Company Information</h3>
@@ -94,36 +115,59 @@ export function CompanyInfoForm({ data, onChange }: CompanyInfoFormProps) {
             placeholder="Enter contact person name"
           />
         </div>
+
+        {/* Primary Mobile */}
         <div className="space-y-2">
           <Label htmlFor="mobilePrimary">
             Primary Mobile <span className="text-destructive">*</span>
           </Label>
           <div className="flex gap-2">
-            <Input value="+971" disabled className="w-20 bg-muted" />
+            <Input
+              value="+971"
+              disabled
+              className="w-20 bg-muted text-center"
+            />
             <Input
               id="mobilePrimary"
               type="tel"
               value={data.mobilePrimary}
-              onChange={(e) => onChange("mobilePrimary", e.target.value)}
+              onChange={(e) =>
+                handleMobileChange("mobilePrimary", e.target.value)
+              }
               placeholder="50 123 4567"
               className="flex-1"
+              maxLength={12}
             />
           </div>
+          <p className="text-xs text-muted-foreground">
+            Type local number (e.g. 501234567) or paste full number
+            (+971501234567)
+          </p>
         </div>
+
+        {/* Alternate Mobile */}
         <div className="space-y-2">
           <Label htmlFor="mobileAlternate">Alternate Mobile</Label>
           <div className="flex gap-2">
-            <Input value="+971" disabled className="w-20 bg-muted" />
+            <Input
+              value="+971"
+              disabled
+              className="w-20 bg-muted text-center"
+            />
             <Input
               id="mobileAlternate"
               type="tel"
               value={data.mobileAlternate}
-              onChange={(e) => onChange("mobileAlternate", e.target.value)}
+              onChange={(e) =>
+                handleMobileChange("mobileAlternate", e.target.value)
+              }
               placeholder="50 123 4567"
               className="flex-1"
+              maxLength={12}
             />
           </div>
         </div>
+
         <div className="space-y-2">
           <Label htmlFor="emailPrimary">
             Primary Email <span className="text-destructive">*</span>

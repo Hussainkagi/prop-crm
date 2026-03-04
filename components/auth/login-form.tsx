@@ -1,8 +1,6 @@
 "use client";
 
-import React from "react";
-
-import { useState } from "react";
+import React, { useState } from "react";
 import { Building2, Eye, EyeOff, User, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,13 +13,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
+import { showSplashLoader, hideSplashLoader } from "@/utils/splash-loader";
 
 interface LoginFormProps {
   onSuccess: () => void;
 }
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
-  const [userId, setUserId] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -32,17 +31,20 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+    showSplashLoader("Signing in...");
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const result = await login(username, password);
+    setTimeout(() => {
+      hideSplashLoader();
+    }, 1000);
 
-    const success = login(userId, password);
-    if (success) {
+    setIsLoading(false);
+
+    if (result.success) {
       onSuccess();
     } else {
-      setError("Invalid User ID or Password");
+      setError(result.message || "Invalid credentials. Please try again.");
     }
-    setIsLoading(false);
   };
 
   return (
@@ -57,22 +59,22 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               Real Estate Collection CRM
             </CardTitle>
             <CardDescription className="mt-2">
-              Complete Developer & Customer Management System
+              Complete Developer &amp; Customer Management System
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="userId">User ID</Label>
+              <Label htmlFor="username">Username</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="userId"
+                  id="username"
                   type="text"
-                  placeholder="Enter your User ID"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -85,7 +87,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your Password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"

@@ -1,8 +1,6 @@
 "use client";
 
-import React from "react";
-
-import { useState } from "react";
+import React, { useState } from "react";
 import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +10,7 @@ import { AddressForm } from "./forms/address-form";
 interface RegisterDeveloperFormProps {
   onSubmit: (data: DeveloperFormData) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
 export interface DeveloperFormData {
@@ -73,6 +72,7 @@ const initialFormData: DeveloperFormData = {
 export function RegisterDeveloperForm({
   onSubmit,
   onCancel,
+  isSubmitting = false,
 }: RegisterDeveloperFormProps) {
   const [formData, setFormData] = useState<DeveloperFormData>(initialFormData);
 
@@ -110,16 +110,22 @@ export function RegisterDeveloperForm({
               data={formData.companyInfo}
               onChange={handleCompanyInfoChange}
             />
-
             <AddressForm
               data={formData.address}
               onChange={handleAddressChange}
             />
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onCancel}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Register Developer</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Registering..." : "Register Developer"}
+              </Button>
             </div>
           </form>
         </CardContent>
