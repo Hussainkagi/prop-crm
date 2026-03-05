@@ -32,6 +32,8 @@ import {
   fetchDeveloper,
   updateDeveloper,
   deleteDeveloper,
+  addDeveloperAddress,
+  updateDeveloperAddress,
   deleteDeveloperAddress,
   type ApiDeveloperDetail,
   type ApiDeveloperAddress,
@@ -151,7 +153,9 @@ export default function DeveloperDetailPage() {
         err instanceof Error ? err.message : "Failed to load developer.",
       );
     } finally {
-      hideSplashLoader();
+      setTimeout(() => {
+        hideSplashLoader();
+      }, 300);
       setIsLoading(false);
     }
   }, [developerId]);
@@ -235,6 +239,32 @@ export default function DeveloperDetailPage() {
           formData.companyInfo.reraRegistrationNumber || undefined,
         credit_rating: formData.companyInfo.creditRating || undefined,
       });
+
+      const existingAddress = developer.addresses?.[0];
+      if (existingAddress) {
+        await updateDeveloperAddress(developerId, existingAddress.address_id, {
+          address_type: formData.address.addressType,
+          address_line1: formData.address.corrAddressLine1,
+          address_line2: formData.address.corrAddressLine2 || undefined,
+          city: formData.address.corrCity,
+          state: formData.address.corrState,
+          pincode: formData.address.corrPincode,
+          country: formData.address.corrCountry,
+          landmark: formData.address.corrLandmark || undefined,
+        });
+      } else if (formData.address.corrAddressLine1) {
+        // No address yet — create one instead
+        await addDeveloperAddress(developerId, {
+          address_type: formData.address.addressType,
+          address_line1: formData.address.corrAddressLine1,
+          address_line2: formData.address.corrAddressLine2 || undefined,
+          city: formData.address.corrCity,
+          state: formData.address.corrState,
+          pincode: formData.address.corrPincode,
+          country: formData.address.corrCountry,
+          landmark: formData.address.corrLandmark || undefined,
+        });
+      }
 
       setSaveSuccess(true);
       // Scroll to top to show success banner

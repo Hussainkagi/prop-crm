@@ -5,6 +5,7 @@ import { Plus, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeveloperCard, type Developer } from "./developer-card";
+import { DeveloperListSkeleton } from "@/components/ui/developer-card-skeleton";
 import {
   RegisterDeveloperForm,
   type DeveloperFormData,
@@ -17,33 +18,14 @@ import {
 } from "@/lib/api/developer-api";
 import { showSplashLoader, hideSplashLoader } from "@/utils/splash-loader";
 
-// ─── Dubai mobile normaliser ──────────────────────────────────────────────────
-// Form shows a fixed "+971" prefix so user types LOCAL part only, but we also
-// gracefully handle pasted full numbers.
-//
-// Accepted inputs:
-//   501234567       local 9-digit (starts with 5 or 4)
-//   0501234567      local with leading 0
-//   971501234567    full without +
-//   +971501234567   full with +
-//
-// Returns: "971XXXXXXXXX" (12 digits) or null if invalid
 export function normalizeDubaiMobile(raw: string): string | null {
-  const digits = raw.replace(/\D/g, ""); // strip +, spaces, dashes
-
-  // Full UAE number: 971 + 9 digits
+  const digits = raw.replace(/\D/g, "");
   if (/^971\d{9}$/.test(digits)) return digits;
-
-  // Local with leading zero: 0501234567
   if (/^0[54]\d{8}$/.test(digits)) return `971${digits.slice(1)}`;
-
-  // Local without prefix: 501234567 (9 digits, starts with 5 or 4)
   if (/^[54]\d{8}$/.test(digits)) return `971${digits}`;
-
   return null;
 }
 
-// ─── Registration type map (select value → API label) ────────────────────────
 const REGISTRATION_TYPE_LABELS: Record<string, string> = {
   "private-limited": "Private Limited",
   "public-limited": "Public Limited",
@@ -52,7 +34,6 @@ const REGISTRATION_TYPE_LABELS: Record<string, string> = {
   proprietorship: "Proprietorship",
 };
 
-// ─── Map API → card shape ─────────────────────────────────────────────────────
 function mapApiDeveloper(d: ApiDeveloper): Developer {
   return {
     id: String(d.developer_id),
@@ -60,12 +41,12 @@ function mapApiDeveloper(d: ApiDeveloper): Developer {
     companyType: d.registration_type,
     contact: d.contact_person_name,
     phone: d.mobile_primary,
+    email: d.email_primary,
     location: "—",
     status: d.developer_status.toUpperCase() as Developer["status"],
   };
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 function DevelopersPage() {
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -74,7 +55,6 @@ function DevelopersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // ref used to scroll error into view
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,11 +63,10 @@ function DevelopersPage() {
     }
   }, [submitError]);
 
-  // ── Fetch developers ────────────────────────────────────────────────────────
+  // ── Fetch — skeleton only, no splash loader ─────────────────────────────────
   const loadDevelopers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    showSplashLoader("Loading developers...");
     try {
       const res = await fetchDevelopers(1, 10);
       setDevelopers(res.data.map(mapApiDeveloper));
@@ -96,8 +75,9 @@ function DevelopersPage() {
         err instanceof Error ? err.message : "Failed to load developers.",
       );
     } finally {
-      hideSplashLoader();
-      setIsLoading(false);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
     }
   }, []);
 
@@ -105,9 +85,8 @@ function DevelopersPage() {
     loadDevelopers();
   }, [loadDevelopers]);
 
-  // ── Register developer + address ────────────────────────────────────────────
+  // ── Register — still uses splash loader (multi-step async action) ───────────
   const handleRegister = async (data: DeveloperFormData) => {
-    // Validate primary mobile
     const primaryNorm = normalizeDubaiMobile(data.companyInfo.mobilePrimary);
     if (!primaryNorm) {
       setSubmitError(
@@ -116,7 +95,6 @@ function DevelopersPage() {
       return;
     }
 
-    // Validate alternate mobile (optional)
     let alternateNorm: string | undefined;
     if (data.companyInfo.mobileAlternate.trim()) {
       const norm = normalizeDubaiMobile(data.companyInfo.mobileAlternate);
@@ -134,7 +112,6 @@ function DevelopersPage() {
     showSplashLoader("Registering developer...");
 
     try {
-      // Step 1 – create developer record
       const devRes = await registerDeveloper({
         company_name: data.companyInfo.companyName,
         registration_type:
@@ -160,7 +137,6 @@ function DevelopersPage() {
 
       const developerId = devRes.data.developer_id;
 
-      // Step 2 – save address (only if at least address_line1 is filled)
       if (data.address.corrAddressLine1.trim()) {
         try {
           await addDeveloperAddress(developerId, {
@@ -174,12 +150,10 @@ function DevelopersPage() {
             landmark: data.address.corrLandmark || undefined,
           });
         } catch (addrErr) {
-          // Developer was saved — address failure is non-blocking, just log it
           console.warn("Address could not be saved:", addrErr);
         }
       }
 
-      // Optimistically prepend new developer to list
       setDevelopers((prev) => [
         {
           id: String(developerId),
@@ -187,6 +161,7 @@ function DevelopersPage() {
           companyType: devRes.data.registration_type,
           contact: devRes.data.contact_person_name,
           phone: devRes.data.mobile_primary,
+          email: devRes.data.email_primary,
           location: data.address.corrCity
             ? `${data.address.corrCity}, ${data.address.corrState}`
             : "—",
@@ -206,7 +181,6 @@ function DevelopersPage() {
     }
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -237,7 +211,6 @@ function DevelopersPage() {
         )}
       </div>
 
-      {/* Fetch error */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -252,7 +225,6 @@ function DevelopersPage() {
 
       {showForm ? (
         <>
-          {/* Submit error — auto-scrolled into view */}
           {submitError && (
             <div ref={errorRef}>
               <Alert variant="destructive">
@@ -272,9 +244,16 @@ function DevelopersPage() {
         </>
       ) : (
         <div className="space-y-4">
-          {developers.map((developer) => (
-            <DeveloperCard key={developer.id} developer={developer} />
-          ))}
+          {/* ── Skeleton while loading ── */}
+          {isLoading && <DeveloperListSkeleton count={5} />}
+
+          {/* ── Real cards once loaded ── */}
+          {!isLoading &&
+            developers.map((developer) => (
+              <DeveloperCard key={developer.id} developer={developer} />
+            ))}
+
+          {/* ── Empty state ── */}
           {!isLoading && developers.length === 0 && !error && (
             <div className="py-12 text-center text-muted-foreground">
               No developers registered yet. Click the button above to register a

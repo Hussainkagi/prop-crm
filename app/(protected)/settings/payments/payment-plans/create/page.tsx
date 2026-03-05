@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Banknote } from "lucide-react";
+import { ArrowLeft, Banknote, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  createPaymentPlan,
+  type CreatePaymentPlanPayload,
+} from "@/lib/api/payment-plan-api";
+import { showSplashLoader, hideSplashLoader } from "@/utils/splash-loader";
 
 interface PaymentPlanFormData {
   project_id: string;
@@ -38,8 +44,25 @@ interface PaymentPlanFormData {
   plan_status: string;
 }
 
+const PLAN_TYPES = [
+  "Construction Linked",
+  "Time Linked",
+  "Possession Linked",
+  "Flexi Payment",
+  "Custom",
+];
+
+// Replace with API-fetched projects as needed
+const PROJECTS = [
+  { id: "1", name: "Skyline Heights" },
+  { id: "2", name: "Green Valley Residency" },
+];
+
 export default function CreatePaymentPlanPage() {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<PaymentPlanFormData>({
     project_id: "",
     plan_name: "",
@@ -58,27 +81,67 @@ export default function CreatePaymentPlanPage() {
     vat_applicable: true,
     vat_percentage: "5.00",
     stamp_duty_included: false,
-    plan_status: "Active",
+    plan_status: "Draft",
   });
 
-  const projects = [
-    { id: "1", name: "Skyline Heights" },
-    { id: "2", name: "Green Valley Residency" },
-  ];
+  const set = (field: keyof PaymentPlanFormData, value: string | boolean) =>
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
-  const planTypes = [
-    "Construction Linked",
-    "Time Linked",
-    "Possession Linked",
-    "Flexi Payment",
-    "Custom",
-  ];
+  const toOptionalNum = (v: string) => (v.trim() ? Number(v) : undefined);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log(formData);
-    router.push("/settings/payment-plans");
+    setSubmitError(null);
+
+    if (!formData.project_id) {
+      setSubmitError("Please select a project.");
+      return;
+    }
+
+    const payload: CreatePaymentPlanPayload = {
+      project_id: Number(formData.project_id),
+      plan_name: formData.plan_name,
+      plan_code: formData.plan_code,
+      plan_description: formData.plan_description || undefined,
+      plan_type: formData.plan_type,
+      total_installments: Number(formData.total_installments),
+      booking_amount_percentage: toOptionalNum(
+        formData.booking_amount_percentage,
+      ),
+      down_payment_percentage: Number(formData.down_payment_percentage),
+      on_agreement_percentage: toOptionalNum(formData.on_agreement_percentage),
+      on_possession_percentage: toOptionalNum(
+        formData.on_possession_percentage,
+      ),
+      grace_period_days: toOptionalNum(formData.grace_period_days),
+      late_payment_charge_percentage: toOptionalNum(
+        formData.late_payment_charge_percentage,
+      ),
+      penalty_terms: formData.penalty_terms || undefined,
+      early_payment_discount_percentage: toOptionalNum(
+        formData.early_payment_discount_percentage,
+      ),
+      vat_applicable: formData.vat_applicable,
+      vat_percentage: formData.vat_applicable
+        ? toOptionalNum(formData.vat_percentage)
+        : undefined,
+      stamp_duty_included: formData.stamp_duty_included,
+      plan_status: formData.plan_status,
+    };
+
+    setIsSubmitting(true);
+    showSplashLoader("Creating payment plan...");
+    try {
+      await createPaymentPlan(payload);
+      router.push("/settings/payments/payment-plans");
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to create payment plan.",
+      );
+    } finally {
+      hideSplashLoader();
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -95,6 +158,13 @@ export default function CreatePaymentPlanPage() {
         </div>
       </div>
 
+      {submitError && (
+        <Alert variant="destructive" className="max-w-4xl">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      )}
+
       <form onSubmit={handleSubmit} className="max-w-4xl space-y-6">
         {/* Basic Information */}
         <Card>
@@ -103,23 +173,20 @@ export default function CreatePaymentPlanPage() {
               <Banknote className="h-4 w-4" />
               Basic Information
             </h3>
-
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="project_id">Project *</Label>
                 <Select
                   value={formData.project_id}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, project_id: value }))
-                  }
+                  onValueChange={(v) => set("project_id", v)}
                 >
                   <SelectTrigger id="project_id">
                     <SelectValue placeholder="Select Project" />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
+                    {PROJECTS.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -131,12 +198,7 @@ export default function CreatePaymentPlanPage() {
                 <Input
                   id="plan_name"
                   value={formData.plan_name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      plan_name: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("plan_name", e.target.value)}
                   placeholder="e.g., 20-80 Standard Plan"
                   required
                 />
@@ -147,12 +209,7 @@ export default function CreatePaymentPlanPage() {
                 <Input
                   id="plan_code"
                   value={formData.plan_code}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      plan_code: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("plan_code", e.target.value)}
                   placeholder="e.g., 20-80-STD"
                   required
                 />
@@ -162,17 +219,15 @@ export default function CreatePaymentPlanPage() {
                 <Label htmlFor="plan_type">Plan Type *</Label>
                 <Select
                   value={formData.plan_type}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, plan_type: value }))
-                  }
+                  onValueChange={(v) => set("plan_type", v)}
                 >
                   <SelectTrigger id="plan_type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {planTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {PLAN_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -184,12 +239,7 @@ export default function CreatePaymentPlanPage() {
                 <Textarea
                   id="plan_description"
                   value={formData.plan_description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      plan_description: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("plan_description", e.target.value)}
                   placeholder="Describe the payment plan details"
                   rows={3}
                 />
@@ -202,20 +252,15 @@ export default function CreatePaymentPlanPage() {
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">Payment Structure</h3>
-
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="total_installments">Total Installments *</Label>
                 <Input
                   id="total_installments"
                   type="number"
+                  min={1}
                   value={formData.total_installments}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      total_installments: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("total_installments", e.target.value)}
                   placeholder="e.g., 36"
                   required
                 />
@@ -231,10 +276,7 @@ export default function CreatePaymentPlanPage() {
                   step="0.01"
                   value={formData.booking_amount_percentage}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      booking_amount_percentage: e.target.value,
-                    }))
+                    set("booking_amount_percentage", e.target.value)
                   }
                   placeholder="e.g., 10"
                 />
@@ -250,10 +292,7 @@ export default function CreatePaymentPlanPage() {
                   step="0.01"
                   value={formData.down_payment_percentage}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      down_payment_percentage: e.target.value,
-                    }))
+                    set("down_payment_percentage", e.target.value)
                   }
                   placeholder="e.g., 20"
                   required
@@ -270,10 +309,7 @@ export default function CreatePaymentPlanPage() {
                   step="0.01"
                   value={formData.on_agreement_percentage}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      on_agreement_percentage: e.target.value,
-                    }))
+                    set("on_agreement_percentage", e.target.value)
                   }
                   placeholder="e.g., 10"
                 />
@@ -289,10 +325,7 @@ export default function CreatePaymentPlanPage() {
                   step="0.01"
                   value={formData.on_possession_percentage}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      on_possession_percentage: e.target.value,
-                    }))
+                    set("on_possession_percentage", e.target.value)
                   }
                   placeholder="e.g., 80"
                 />
@@ -305,7 +338,6 @@ export default function CreatePaymentPlanPage() {
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">Terms & Conditions</h3>
-
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="grace_period_days">Grace Period (Days)</Label>
@@ -313,12 +345,7 @@ export default function CreatePaymentPlanPage() {
                   id="grace_period_days"
                   type="number"
                   value={formData.grace_period_days}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      grace_period_days: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("grace_period_days", e.target.value)}
                   placeholder="e.g., 15"
                 />
               </div>
@@ -333,10 +360,7 @@ export default function CreatePaymentPlanPage() {
                   step="0.01"
                   value={formData.late_payment_charge_percentage}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      late_payment_charge_percentage: e.target.value,
-                    }))
+                    set("late_payment_charge_percentage", e.target.value)
                   }
                   placeholder="e.g., 1.5"
                 />
@@ -352,10 +376,7 @@ export default function CreatePaymentPlanPage() {
                   step="0.01"
                   value={formData.early_payment_discount_percentage}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      early_payment_discount_percentage: e.target.value,
-                    }))
+                    set("early_payment_discount_percentage", e.target.value)
                   }
                   placeholder="e.g., 2"
                 />
@@ -366,12 +387,7 @@ export default function CreatePaymentPlanPage() {
                 <Textarea
                   id="penalty_terms"
                   value={formData.penalty_terms}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      penalty_terms: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("penalty_terms", e.target.value)}
                   placeholder="Describe penalty terms and conditions"
                   rows={3}
                 />
@@ -384,7 +400,6 @@ export default function CreatePaymentPlanPage() {
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">Tax & Status</h3>
-
             <div className="grid gap-6 md:grid-cols-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -396,12 +411,7 @@ export default function CreatePaymentPlanPage() {
                 <Switch
                   id="vat_applicable"
                   checked={formData.vat_applicable}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      vat_applicable: checked,
-                    }))
-                  }
+                  onCheckedChange={(v) => set("vat_applicable", v)}
                 />
               </div>
 
@@ -413,12 +423,7 @@ export default function CreatePaymentPlanPage() {
                     type="number"
                     step="0.01"
                     value={formData.vat_percentage}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        vat_percentage: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => set("vat_percentage", e.target.value)}
                     placeholder="5.00"
                   />
                 </div>
@@ -436,12 +441,7 @@ export default function CreatePaymentPlanPage() {
                 <Switch
                   id="stamp_duty_included"
                   checked={formData.stamp_duty_included}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      stamp_duty_included: checked,
-                    }))
-                  }
+                  onCheckedChange={(v) => set("stamp_duty_included", v)}
                 />
               </div>
 
@@ -449,9 +449,7 @@ export default function CreatePaymentPlanPage() {
                 <Label htmlFor="plan_status">Plan Status</Label>
                 <Select
                   value={formData.plan_status}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, plan_status: value }))
-                  }
+                  onValueChange={(v) => set("plan_status", v)}
                 >
                   <SelectTrigger id="plan_status">
                     <SelectValue />
@@ -469,10 +467,17 @@ export default function CreatePaymentPlanPage() {
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button type="submit">Create Payment Plan</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create Payment Plan"}
+          </Button>
         </div>
       </form>
     </div>

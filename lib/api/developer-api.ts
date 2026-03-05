@@ -172,6 +172,17 @@ export interface UpdateDeveloperResponse {
   data: ApiDeveloperDetail;
 }
 
+export interface UpdateDeveloperAddressPayload {
+  address_type?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
+  landmark?: string;
+}
+
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export async function fetchDevelopers(
@@ -272,4 +283,24 @@ export async function deleteDeveloperAddress(
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Failed to delete address");
   }
+}
+
+export async function updateDeveloperAddress(
+  developerId: number,
+  addressId: number,
+  payload: UpdateDeveloperAddressPayload,
+): Promise<AddDeveloperAddressResponse> {
+  const res = await fetch(
+    `${BASE_URL}/developers/${developerId}/addresses/${addressId}`,
+    {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Failed to update developer address");
+  }
+  return res.json();
 }
