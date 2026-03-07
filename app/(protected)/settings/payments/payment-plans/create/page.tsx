@@ -24,7 +24,6 @@ import {
 import { showSplashLoader, hideSplashLoader } from "@/utils/splash-loader";
 
 interface PaymentPlanFormData {
-  project_id: string;
   plan_name: string;
   plan_code: string;
   plan_description: string;
@@ -41,21 +40,16 @@ interface PaymentPlanFormData {
   vat_applicable: boolean;
   vat_percentage: string;
   stamp_duty_included: boolean;
-  plan_status: string;
+  early_bird_discount: string;
+  referral_bonus: string;
 }
 
 const PLAN_TYPES = [
   "Construction Linked",
   "Time Linked",
-  "Possession Linked",
-  "Flexi Payment",
+  "Down Payment",
+  "Flexi",
   "Custom",
-];
-
-// Replace with API-fetched projects as needed
-const PROJECTS = [
-  { id: "1", name: "Skyline Heights" },
-  { id: "2", name: "Green Valley Residency" },
 ];
 
 export default function CreatePaymentPlanPage() {
@@ -64,7 +58,6 @@ export default function CreatePaymentPlanPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<PaymentPlanFormData>({
-    project_id: "",
     plan_name: "",
     plan_code: "",
     plan_description: "",
@@ -74,14 +67,15 @@ export default function CreatePaymentPlanPage() {
     down_payment_percentage: "",
     on_agreement_percentage: "",
     on_possession_percentage: "",
-    grace_period_days: "15",
+    grace_period_days: "7",
     late_payment_charge_percentage: "",
     penalty_terms: "",
     early_payment_discount_percentage: "",
     vat_applicable: true,
     vat_percentage: "5.00",
     stamp_duty_included: false,
-    plan_status: "Draft",
+    early_bird_discount: "",
+    referral_bonus: "",
   });
 
   const set = (field: keyof PaymentPlanFormData, value: string | boolean) =>
@@ -93,22 +87,29 @@ export default function CreatePaymentPlanPage() {
     e.preventDefault();
     setSubmitError(null);
 
-    if (!formData.project_id) {
-      setSubmitError("Please select a project.");
-      return;
-    }
+    // Build special_offers only if either field is filled
+    const special_offers =
+      formData.early_bird_discount || formData.referral_bonus
+        ? {
+            ...(formData.early_bird_discount && {
+              early_bird_discount: formData.early_bird_discount,
+            }),
+            ...(formData.referral_bonus && {
+              referral_bonus: formData.referral_bonus,
+            }),
+          }
+        : undefined;
 
     const payload: CreatePaymentPlanPayload = {
-      project_id: Number(formData.project_id),
       plan_name: formData.plan_name,
-      plan_code: formData.plan_code,
+      plan_code: formData.plan_code || undefined,
       plan_description: formData.plan_description || undefined,
       plan_type: formData.plan_type,
-      total_installments: Number(formData.total_installments),
+      total_installments: toOptionalNum(formData.total_installments),
       booking_amount_percentage: toOptionalNum(
         formData.booking_amount_percentage,
       ),
-      down_payment_percentage: Number(formData.down_payment_percentage),
+      down_payment_percentage: toOptionalNum(formData.down_payment_percentage),
       on_agreement_percentage: toOptionalNum(formData.on_agreement_percentage),
       on_possession_percentage: toOptionalNum(
         formData.on_possession_percentage,
@@ -126,20 +127,23 @@ export default function CreatePaymentPlanPage() {
         ? toOptionalNum(formData.vat_percentage)
         : undefined,
       stamp_duty_included: formData.stamp_duty_included,
-      plan_status: formData.plan_status,
+      special_offers,
     };
 
     setIsSubmitting(true);
     showSplashLoader("Creating payment plan...");
     try {
       await createPaymentPlan(payload);
-      router.push("/settings/payments/payment-plans");
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Failed to create payment plan.",
       );
     } finally {
-      hideSplashLoader();
+      setTimeout(() => {
+        router.push("/settings/payments");
+        hideSplashLoader();
+      }, 500); // Ensure loader is visible for at least 500ms for better UX
+
       setIsSubmitting(false);
     }
   };
@@ -153,7 +157,7 @@ export default function CreatePaymentPlanPage() {
         <div>
           <h1 className="text-2xl font-bold">Create Payment Plan</h1>
           <p className="text-sm text-muted-foreground">
-            Add a new payment plan for a project
+            Create a master payment plan template to link to projects
           </p>
         </div>
       </div>
@@ -175,43 +179,23 @@ export default function CreatePaymentPlanPage() {
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="project_id">Project *</Label>
-                <Select
-                  value={formData.project_id}
-                  onValueChange={(v) => set("project_id", v)}
-                >
-                  <SelectTrigger id="project_id">
-                    <SelectValue placeholder="Select Project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROJECTS.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="plan_name">Plan Name *</Label>
                 <Input
                   id="plan_name"
                   value={formData.plan_name}
                   onChange={(e) => set("plan_name", e.target.value)}
-                  placeholder="e.g., 20-80 Standard Plan"
+                  placeholder="e.g., Construction Linked Plan - Standard"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="plan_code">Plan Code *</Label>
+                <Label htmlFor="plan_code">Plan Code</Label>
                 <Input
                   id="plan_code"
                   value={formData.plan_code}
                   onChange={(e) => set("plan_code", e.target.value)}
-                  placeholder="e.g., 20-80-STD"
-                  required
+                  placeholder="e.g., CLP-STD-001"
                 />
               </div>
 
@@ -254,15 +238,14 @@ export default function CreatePaymentPlanPage() {
             <h3 className="mb-4 text-base font-semibold">Payment Structure</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="total_installments">Total Installments *</Label>
+                <Label htmlFor="total_installments">Total Installments</Label>
                 <Input
                   id="total_installments"
                   type="number"
                   min={1}
                   value={formData.total_installments}
                   onChange={(e) => set("total_installments", e.target.value)}
-                  placeholder="e.g., 36"
-                  required
+                  placeholder="e.g., 8"
                 />
               </div>
 
@@ -284,7 +267,7 @@ export default function CreatePaymentPlanPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="down_payment_percentage">
-                  Down Payment (%) *
+                  Down Payment (%)
                 </Label>
                 <Input
                   id="down_payment_percentage"
@@ -294,8 +277,7 @@ export default function CreatePaymentPlanPage() {
                   onChange={(e) =>
                     set("down_payment_percentage", e.target.value)
                   }
-                  placeholder="e.g., 20"
-                  required
+                  placeholder="e.g., 15"
                 />
               </div>
 
@@ -327,7 +309,7 @@ export default function CreatePaymentPlanPage() {
                   onChange={(e) =>
                     set("on_possession_percentage", e.target.value)
                   }
-                  placeholder="e.g., 80"
+                  placeholder="e.g., 15"
                 />
               </div>
             </div>
@@ -346,7 +328,7 @@ export default function CreatePaymentPlanPage() {
                   type="number"
                   value={formData.grace_period_days}
                   onChange={(e) => set("grace_period_days", e.target.value)}
-                  placeholder="e.g., 15"
+                  placeholder="e.g., 7"
                 />
               </div>
 
@@ -362,7 +344,7 @@ export default function CreatePaymentPlanPage() {
                   onChange={(e) =>
                     set("late_payment_charge_percentage", e.target.value)
                   }
-                  placeholder="e.g., 1.5"
+                  placeholder="e.g., 18"
                 />
               </div>
 
@@ -388,7 +370,7 @@ export default function CreatePaymentPlanPage() {
                   id="penalty_terms"
                   value={formData.penalty_terms}
                   onChange={(e) => set("penalty_terms", e.target.value)}
-                  placeholder="Describe penalty terms and conditions"
+                  placeholder="e.g., 18% per annum on delayed payments after grace period"
                   rows={3}
                 />
               </div>
@@ -396,10 +378,38 @@ export default function CreatePaymentPlanPage() {
           </CardContent>
         </Card>
 
-        {/* Tax & Status */}
+        {/* Special Offers */}
         <Card>
           <CardContent className="pt-6">
-            <h3 className="mb-4 text-base font-semibold">Tax & Status</h3>
+            <h3 className="mb-4 text-base font-semibold">Special Offers</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="early_bird_discount">Early Bird Discount</Label>
+                <Input
+                  id="early_bird_discount"
+                  value={formData.early_bird_discount}
+                  onChange={(e) => set("early_bird_discount", e.target.value)}
+                  placeholder="e.g., 2% if booked before Dec 2024"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="referral_bonus">Referral Bonus</Label>
+                <Input
+                  id="referral_bonus"
+                  value={formData.referral_bonus}
+                  onChange={(e) => set("referral_bonus", e.target.value)}
+                  placeholder="e.g., AED 5000 on successful referral"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tax */}
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="mb-4 text-base font-semibold">Tax</h3>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -443,24 +453,6 @@ export default function CreatePaymentPlanPage() {
                   checked={formData.stamp_duty_included}
                   onCheckedChange={(v) => set("stamp_duty_included", v)}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="plan_status">Plan Status</Label>
-                <Select
-                  value={formData.plan_status}
-                  onValueChange={(v) => set("plan_status", v)}
-                >
-                  <SelectTrigger id="plan_status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                    <SelectItem value="Draft">Draft</SelectItem>
-                    <SelectItem value="Archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardContent>

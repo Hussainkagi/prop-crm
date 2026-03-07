@@ -42,18 +42,18 @@ function SettingsLayout({ children }: SettingsLayoutProps) {
   };
 
   return (
-    <div className="flex flex-col lg:h-[calc(100vh-4rem)] lg:flex-row lg:overflow-hidden">
-      {/* Mobile Header - Shows current page */}
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      {/* Mobile Header */}
       <div className="border-b bg-background p-4 lg:hidden">
         <h1 className="text-xl font-semibold">Settings</h1>
       </div>
 
-      {/* Desktop Sidebar */}
-      <div className="hidden w-80 border-r bg-background lg:block">
-        <div className="p-6">
+      {/* Desktop Sidebar — sticky */}
+      <div className="hidden w-80 flex-shrink-0 border-r bg-background lg:flex lg:flex-col lg:sticky lg:top-[8rem] lg:h-[calc(100vh-8rem)]">
+        <div className="flex-shrink-0 p-6">
           <h1 className="text-2xl font-bold">Settings</h1>
         </div>
-        <nav className="space-y-1 px-3">
+        <nav className="flex-1 overflow-y-auto space-y-1 px-3 pb-4">
           {settingsOptions.map((option) => {
             const Icon = option.icon;
             const isActive = isActiveRoute(option.path);
@@ -81,7 +81,7 @@ function SettingsLayout({ children }: SettingsLayoutProps) {
         </nav>
       </div>
 
-      {/* Mobile Navigation List - Only shown on /settings root */}
+      {/* Mobile Navigation List */}
       {pathname === "/settings" && (
         <div className="divide-y lg:hidden">
           {settingsOptions.map((option) => {
@@ -108,8 +108,8 @@ function SettingsLayout({ children }: SettingsLayoutProps) {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Main Content — scrolls normally */}
+      <div className="flex-1 min-w-0">
         <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
       </div>
     </div>

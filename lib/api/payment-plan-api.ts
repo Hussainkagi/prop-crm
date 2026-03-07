@@ -82,14 +82,13 @@ export interface GetPaymentPlanResponse {
 }
 
 export interface CreatePaymentPlanPayload {
-  project_id: number;
   plan_name: string;
-  plan_code: string;
+  plan_code?: string; // optional — unique but not required
   plan_description?: string;
   plan_type: string;
-  total_installments: number;
+  total_installments?: number;
   booking_amount_percentage?: number;
-  down_payment_percentage: number;
+  down_payment_percentage?: number;
   on_agreement_percentage?: number;
   on_possession_percentage?: number;
   grace_period_days?: number;
@@ -99,7 +98,6 @@ export interface CreatePaymentPlanPayload {
   vat_applicable: boolean;
   vat_percentage?: number;
   stamp_duty_included: boolean;
-  plan_status?: string;
   special_offers?: Record<string, string>;
 }
 

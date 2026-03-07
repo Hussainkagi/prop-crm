@@ -32,11 +32,15 @@ export default function ProtectedLayout({
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <AppHeader />
-      <AppNavigation />
-      <main className="flex-1 p-6">{children}</main>
-      <ChatbotWidget /> {/* Add this - only in protected pages */}
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-50 bg-background">
+        <AppHeader />
+        <AppNavigation />
+      </div>
+      <main>
+        <div className="p-6">{children}</div>
+      </main>
+      <ChatbotWidget />
     </div>
   );
 }

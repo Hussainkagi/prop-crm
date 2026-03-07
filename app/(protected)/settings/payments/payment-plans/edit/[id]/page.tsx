@@ -256,7 +256,7 @@ export default function EditPaymentPlanPage() {
     try {
       await deletePaymentPlan(planId);
       hideSplashLoader();
-      router.push("/settings/payments/payment-plans");
+      router.push("/settings/payments");
     } catch (err) {
       hideSplashLoader();
       setDeleteError(
@@ -376,15 +376,6 @@ export default function EditPaymentPlanPage() {
               Basic Information
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Project</Label>
-                <Input
-                  value={plan.project_name}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="plan_name">Plan Name *</Label>
                 <Input

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Milestone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  fetchPaymentPlans,
+  type ApiPaymentPlan,
+} from "@/lib/api/payment-plan-api";
+import {
+  createMilestone,
+  type CreateMilestonePayload,
+} from "@/lib/api/milestone-api";
 
 interface MilestoneFormData {
   plan_id: string;
@@ -37,17 +45,62 @@ export default function CreateMilestonePage() {
     expected_days_from_booking: "",
   });
 
-  const paymentPlans = [
-    { id: "1", name: "20-80 Standard Plan - Skyline Heights" },
-    { id: "2", name: "30-70 Fast Track - Skyline Heights" },
-  ];
+  const [paymentPlans, setPaymentPlans] = useState<ApiPaymentPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const amountTypes = ["Percentage", "Fixed Amount"];
+  const amountTypes = ["Percentage", "Fixed"];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function loadPlans() {
+      try {
+        setLoadingPlans(true);
+        const res = await fetchPaymentPlans(1, 100);
+        setPaymentPlans(res.data);
+      } catch (err) {
+        console.error("Failed to load payment plans:", err);
+        setError("Failed to load payment plans");
+      } finally {
+        setLoadingPlans(false);
+      }
+    }
+    loadPlans();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
-    router.push("/settings/payment-plans");
+    setError(null);
+
+    if (!formData.plan_id) {
+      setError("Please select a payment plan");
+      return;
+    }
+
+    const planId = parseInt(formData.plan_id, 10);
+    const payload: CreateMilestonePayload = {
+      milestone_sequence: parseInt(formData.milestone_sequence, 10),
+      milestone_name: formData.milestone_name,
+      milestone_percentage: parseFloat(formData.milestone_percentage),
+      days_from_previous: parseInt(formData.days_from_previous, 10),
+      amount_type: formData.amount_type,
+      expected_days_from_booking: parseInt(
+        formData.expected_days_from_booking || "0",
+        10,
+      ),
+    };
+
+    try {
+      setSubmitting(true);
+      await createMilestone(planId, payload);
+      router.push("/settings/payment-plans");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to create milestone";
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -63,6 +116,12 @@ export default function CreateMilestonePage() {
           </p>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
         <Card>
@@ -80,14 +139,24 @@ export default function CreateMilestonePage() {
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, plan_id: value }))
                   }
+                  disabled={loadingPlans}
                 >
                   <SelectTrigger id="plan_id">
-                    <SelectValue placeholder="Select Payment Plan" />
+                    <SelectValue
+                      placeholder={
+                        loadingPlans
+                          ? "Loading plans..."
+                          : "Select Payment Plan"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {paymentPlans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name}
+                      <SelectItem
+                        key={plan.plan_id}
+                        value={String(plan.plan_id)}
+                      >
+                        {plan.plan_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -227,10 +296,17 @@ export default function CreateMilestonePage() {
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button type="submit">Create Milestone</Button>
+          <Button type="submit" disabled={submitting || loadingPlans}>
+            {submitting ? "Creating..." : "Create Milestone"}
+          </Button>
         </div>
       </form>
     </div>

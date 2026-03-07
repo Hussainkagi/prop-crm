@@ -31,6 +31,7 @@ import {
   type ApiPaymentPlan,
 } from "@/lib/api/payment-plan-api";
 import { showSplashLoader, hideSplashLoader } from "@/utils/splash-loader";
+import { set } from "date-fns";
 
 const STATUS_VARIANT: Record<
   string,
@@ -77,7 +78,10 @@ export function PaymentPlansList() {
         err instanceof Error ? err.message : "Failed to load payment plans.",
       );
     } finally {
-      hideSplashLoader();
+      setTimeout(() => {
+        hideSplashLoader();
+      }, 500);
+
       setIsLoading(false);
     }
   }, []);
