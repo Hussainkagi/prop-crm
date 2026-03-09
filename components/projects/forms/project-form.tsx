@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building, X, Plus, MapPin } from "lucide-react";
+import { Building, X, Plus, MapPin, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,17 +14,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProjectFormData {
-  // Basic Information
-  developer_id: string;
   project_name: string;
   project_type: string;
   project_category: string;
   rera_registration_number: string;
-
-  // Address Information
   project_address_line1: string;
   project_address_line2: string;
   locality: string;
@@ -34,42 +34,248 @@ export interface ProjectFormData {
   landmark: string;
   latitude: string;
   longitude: string;
-
-  // Project Details
   total_land_area: string;
   land_area_unit: string;
   total_built_up_area: string;
   number_of_towers: string;
   total_units: string;
-
-  // Dates
   launch_date: string;
   expected_completion_date: string;
   actual_completion_date: string;
-
-  // Status
   project_status: string;
   possession_status: string;
   construction_stage_percentage: string;
-
-  // Amenities (stored as array, will be converted to JSON)
   amenities: string[];
-
-  // Payment Plan
   selectedPaymentPlan: string;
 }
 
+type FormErrors = Partial<
+  Record<keyof ProjectFormData | "api" | "token", string>
+>;
+
 interface RegisterProjectFormProps {
-  onSubmit: (data: ProjectFormData) => void;
+  onSubmit?: (data: ProjectFormData) => void;
   onCancel: () => void;
 }
+
+// ─── Amenity → API key mapping ────────────────────────────────────────────────
+
+const AMENITY_KEY_MAP: Record<string, string> = {
+  "Swimming Pool": "swimming_pool",
+  Gym: "gym",
+  Clubhouse: "clubhouse",
+  "Children Play Area": "children_play_area",
+  "24Hr Security": "24hr_security",
+  "Power Backup": "power_backup",
+  "Indoor Games": "indoor_games",
+  "Jogging Track": "jogging_track",
+  "Tennis Court": "tennis_court",
+  "Badminton Court": "badminton_court",
+};
+
+function amenitiesToApiPayload(
+  amenities: string[],
+): Record<string, boolean | string> {
+  const payload: Record<string, boolean | string> = {};
+  amenities.forEach((a) => {
+    const key = AMENITY_KEY_MAP[a] ?? a.toLowerCase().replace(/\s+/g, "_");
+    payload[key] = true;
+  });
+  return payload;
+}
+
+// ─── Validation ───────────────────────────────────────────────────────────────
+
+const PINCODE_RE = /^\d{6}$/;
+const RERA_RE = /^RERA-[A-Z]{2}-\d{4}-\d{6}$/;
+const COORD_RE = /^-?\d+(\.\d+)?$/;
+
+function validate(data: ProjectFormData): FormErrors {
+  const errors: FormErrors = {};
+
+  if (!data.project_name.trim())
+    errors.project_name = "Project name is required.";
+  if (!data.project_type) errors.project_type = "Project type is required.";
+  if (!data.rera_registration_number.trim()) {
+    errors.rera_registration_number = "RERA number is required.";
+  } else if (!RERA_RE.test(data.rera_registration_number.trim())) {
+    errors.rera_registration_number =
+      "Format must be RERA-XX-YYYY-NNNNNN (e.g. RERA-KA-2023-007890).";
+  }
+
+  // Address
+  if (!data.project_address_line1.trim())
+    errors.project_address_line1 = "Address line 1 is required.";
+  if (!data.locality.trim()) errors.locality = "Locality is required.";
+  if (!data.city.trim()) errors.city = "City is required.";
+  if (!data.state.trim()) errors.state = "State is required.";
+  if (!data.pincode.trim()) {
+    errors.pincode = "Pincode is required.";
+  } else if (!PINCODE_RE.test(data.pincode.trim())) {
+    errors.pincode = "Pincode must be exactly 6 digits.";
+  }
+
+  if (data.latitude && !COORD_RE.test(data.latitude))
+    errors.latitude = "Enter a valid latitude.";
+  if (data.longitude && !COORD_RE.test(data.longitude))
+    errors.longitude = "Enter a valid longitude.";
+
+  if (data.latitude) {
+    const lat = parseFloat(data.latitude);
+    if (lat < -90 || lat > 90)
+      errors.latitude = "Latitude must be between -90 and 90.";
+  }
+  if (data.longitude) {
+    const lon = parseFloat(data.longitude);
+    if (lon < -180 || lon > 180)
+      errors.longitude = "Longitude must be between -180 and 180.";
+  }
+
+  // Project details
+  if (!data.total_units.trim()) {
+    errors.total_units = "Total units is required.";
+  } else if (isNaN(Number(data.total_units)) || Number(data.total_units) <= 0) {
+    errors.total_units = "Total units must be a positive number.";
+  }
+
+  if (data.total_land_area && Number(data.total_land_area) <= 0)
+    errors.total_land_area = "Land area must be positive.";
+  if (data.total_built_up_area && Number(data.total_built_up_area) <= 0)
+    errors.total_built_up_area = "Built-up area must be positive.";
+  if (data.number_of_towers && Number(data.number_of_towers) <= 0)
+    errors.number_of_towers = "Number of towers must be positive.";
+
+  const csp = Number(data.construction_stage_percentage);
+  if (
+    data.construction_stage_percentage &&
+    (isNaN(csp) || csp < 0 || csp > 100)
+  ) {
+    errors.construction_stage_percentage =
+      "Construction stage must be between 0 and 100.";
+  }
+
+  // Dates
+  if (!data.launch_date) errors.launch_date = "Launch date is required.";
+  if (!data.expected_completion_date)
+    errors.expected_completion_date = "Expected completion date is required.";
+
+  if (data.launch_date && data.expected_completion_date) {
+    if (new Date(data.expected_completion_date) <= new Date(data.launch_date)) {
+      errors.expected_completion_date =
+        "Expected completion date must be after launch date.";
+    }
+  }
+
+  if (data.actual_completion_date && data.launch_date) {
+    if (new Date(data.actual_completion_date) < new Date(data.launch_date)) {
+      errors.actual_completion_date =
+        "Actual completion date cannot be before launch date.";
+    }
+  }
+
+  if (!data.project_status)
+    errors.project_status = "Project status is required.";
+
+  return errors;
+}
+
+// ─── API call ─────────────────────────────────────────────────────────────────
+
+async function createProject(data: ProjectFormData): Promise<void> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("crm_access_token")
+      : null;
+
+  if (!token) throw new Error("No access token found. Please log in again.");
+
+  const payload: Record<string, unknown> = {
+    project_name: data.project_name.trim(),
+    project_type: data.project_type,
+    rera_registration_number: data.rera_registration_number.trim(),
+    project_address_line1: data.project_address_line1.trim(),
+    project_address_line2: data.project_address_line2.trim() || undefined,
+    locality: data.locality.trim(),
+    city: data.city.trim(),
+    state: data.state.trim(),
+    pincode: data.pincode.trim(),
+    landmark: data.landmark.trim() || undefined,
+    total_units: Number(data.total_units),
+    launch_date: data.launch_date,
+    expected_completion_date: data.expected_completion_date,
+    project_status: data.project_status,
+    possession_status: data.possession_status,
+    amenities: amenitiesToApiPayload(data.amenities),
+  };
+
+  if (data.project_category) payload.project_category = data.project_category;
+  if (data.latitude) payload.latitude = parseFloat(data.latitude);
+  if (data.longitude) payload.longitude = parseFloat(data.longitude);
+  if (data.total_land_area)
+    payload.total_land_area = parseFloat(data.total_land_area);
+  if (data.land_area_unit) payload.land_area_unit = data.land_area_unit;
+  if (data.total_built_up_area)
+    payload.total_built_up_area = parseFloat(data.total_built_up_area);
+  if (data.number_of_towers)
+    payload.number_of_towers = Number(data.number_of_towers);
+  if (data.actual_completion_date)
+    payload.actual_completion_date = data.actual_completion_date;
+  if (data.construction_stage_percentage)
+    payload.construction_stage_percentage = Number(
+      data.construction_stage_percentage,
+    );
+  if (data.selectedPaymentPlan) payload.payment_plan = data.selectedPaymentPlan;
+
+  const res = await fetch(`${BASE_URL}/projects`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let message = `Server error: ${res.status}`;
+    try {
+      const err = await res.json();
+      message = err?.message ?? err?.error ?? message;
+    } catch {
+      // ignore parse error
+    }
+    throw new Error(message);
+  }
+}
+
+// ─── Field error helper ───────────────────────────────────────────────────────
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="mt-1 text-xs text-red-500">{msg}</p>;
+}
+
+// ─── Preset amenity chips ─────────────────────────────────────────────────────
+
+const PRESET_AMENITIES = [
+  "Swimming Pool",
+  "Gym",
+  "Clubhouse",
+  "Children Play Area",
+  "24Hr Security",
+  "Power Backup",
+  "Indoor Games",
+  "Jogging Track",
+  "Tennis Court",
+  "Badminton Court",
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function RegisterProjectForm({
   onSubmit,
   onCancel,
 }: RegisterProjectFormProps) {
   const [formData, setFormData] = useState<ProjectFormData>({
-    developer_id: "",
     project_name: "",
     project_type: "Residential",
     project_category: "",
@@ -98,8 +304,72 @@ export function RegisterProjectForm({
     selectedPaymentPlan: "",
   });
 
+  const [errors, setErrors] = useState<FormErrors>({});
   const [currentAmenity, setCurrentAmenity] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
+  const set = (field: keyof ProjectFormData, value: string | string[]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // clear error on change
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const addAmenity = (amenity?: string) => {
+    const value = (amenity ?? currentAmenity).trim();
+    if (!value) return;
+    if (formData.amenities.includes(value)) return;
+    set("amenities", [...formData.amenities, value]);
+    if (!amenity) setCurrentAmenity("");
+  };
+
+  const removeAmenity = (index: number) => {
+    set(
+      "amenities",
+      formData.amenities.filter((_, i) => i !== index),
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccessMsg("");
+
+    // Check token first
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("crm_access_token")
+        : null;
+    if (!token) {
+      setErrors({ token: "No access token found. Please log in again." });
+      return;
+    }
+
+    const validationErrors = validate(formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      // scroll to first error
+      const firstKey = Object.keys(validationErrors)[0];
+      document
+        .getElementById(firstKey)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createProject(formData);
+      setSuccessMsg("Project registered successfully!");
+      onSubmit?.(formData);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong.";
+      setErrors({ api: message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── options ──
   const projectTypes = ["Residential", "Commercial", "Mixed Use"];
   const projectCategories = [
     "Luxury",
@@ -108,10 +378,11 @@ export function RegisterProjectForm({
     "Premium",
     "Budget",
   ];
-  const landAreaUnits = ["sq.ft", "sq.m", "acres", "hectares"];
+  const landAreaUnits = ["sq.ft", "sq.m", "acres", "hectares", "Acres"];
   const projectStatuses = [
     "Planning",
     "Under Construction",
+    "Active",
     "Completed",
     "On Hold",
     "Cancelled",
@@ -122,7 +393,6 @@ export function RegisterProjectForm({
     "Under Construction",
     "Possession Given",
   ];
-
   const paymentPlans = [
     {
       id: "20-80",
@@ -144,28 +414,6 @@ export function RegisterProjectForm({
     },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  const addAmenity = () => {
-    if (currentAmenity.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        amenities: [...prev.amenities, currentAmenity.trim()],
-      }));
-      setCurrentAmenity("");
-    }
-  };
-
-  const removeAmenity = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      amenities: prev.amenities.filter((_, i) => i !== index),
-    }));
-  };
-
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-6 flex items-center gap-2">
@@ -173,8 +421,31 @@ export function RegisterProjectForm({
         <h2 className="text-xl font-semibold">Add New Project</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
+      {/* Token error banner */}
+      {errors.token && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{errors.token}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* API error banner */}
+      {errors.api && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{errors.api}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Success banner */}
+      {successMsg && (
+        <Alert className="mb-4 border-green-500 bg-green-50 text-green-800">
+          <AlertDescription>{successMsg}</AlertDescription>
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        {/* ── Basic Information ── */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
@@ -183,86 +454,64 @@ export function RegisterProjectForm({
             </h3>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="developer_id">Developer *</Label>
-                <Select
-                  value={formData.developer_id}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, developer_id: value }))
-                  }
-                >
-                  <SelectTrigger id="developer_id">
-                    <SelectValue placeholder="Select Developer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Skyline Builders Pvt Ltd</SelectItem>
-                    <SelectItem value="2">Green Valley Developers</SelectItem>
-                    <SelectItem value="3">Metro Properties</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
+              {/* Project Name */}
               <div className="space-y-2">
                 <Label htmlFor="project_name">Project Name *</Label>
                 <Input
                   id="project_name"
                   value={formData.project_name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      project_name: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("project_name", e.target.value)}
                   placeholder="Enter project name"
-                  required
+                  className={errors.project_name ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.project_name} />
               </div>
 
+              {/* Project Type */}
               <div className="space-y-2">
                 <Label htmlFor="project_type">Project Type *</Label>
                 <Select
                   value={formData.project_type}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, project_type: value }))
-                  }
+                  onValueChange={(v) => set("project_type", v)}
                 >
-                  <SelectTrigger id="project_type">
+                  <SelectTrigger
+                    id="project_type"
+                    className={errors.project_type ? "border-red-500" : ""}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {projectTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {projectTypes.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError msg={errors.project_type} />
               </div>
 
+              {/* Project Category */}
               <div className="space-y-2">
                 <Label htmlFor="project_category">Project Category</Label>
                 <Select
                   value={formData.project_category}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      project_category: value,
-                    }))
-                  }
+                  onValueChange={(v) => set("project_category", v)}
                 >
                   <SelectTrigger id="project_category">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {projectCategories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    {projectCategories.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* RERA */}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="rera_registration_number">
                   RERA Registration Number *
@@ -271,20 +520,20 @@ export function RegisterProjectForm({
                   id="rera_registration_number"
                   value={formData.rera_registration_number}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      rera_registration_number: e.target.value,
-                    }))
+                    set("rera_registration_number", e.target.value)
                   }
-                  placeholder="Enter RERA registration number"
-                  required
+                  placeholder="RERA-KA-2023-007890"
+                  className={
+                    errors.rera_registration_number ? "border-red-500" : ""
+                  }
                 />
+                <FieldError msg={errors.rera_registration_number} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Address Information */}
+        {/* ── Address Information ── */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
@@ -298,15 +547,13 @@ export function RegisterProjectForm({
                 <Input
                   id="project_address_line1"
                   value={formData.project_address_line1}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      project_address_line1: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("project_address_line1", e.target.value)}
                   placeholder="Street address, building number"
-                  required
+                  className={
+                    errors.project_address_line1 ? "border-red-500" : ""
+                  }
                 />
+                <FieldError msg={errors.project_address_line1} />
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -314,12 +561,7 @@ export function RegisterProjectForm({
                 <Input
                   id="project_address_line2"
                   value={formData.project_address_line2}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      project_address_line2: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("project_address_line2", e.target.value)}
                   placeholder="Apartment, suite, unit, floor, etc."
                 />
               </div>
@@ -329,15 +571,11 @@ export function RegisterProjectForm({
                 <Input
                   id="locality"
                   value={formData.locality}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      locality: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("locality", e.target.value)}
                   placeholder="Area/Locality"
-                  required
+                  className={errors.locality ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.locality} />
               </div>
 
               <div className="space-y-2">
@@ -345,12 +583,11 @@ export function RegisterProjectForm({
                 <Input
                   id="city"
                   value={formData.city}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, city: e.target.value }))
-                  }
+                  onChange={(e) => set("city", e.target.value)}
                   placeholder="City"
-                  required
+                  className={errors.city ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.city} />
               </div>
 
               <div className="space-y-2">
@@ -358,12 +595,11 @@ export function RegisterProjectForm({
                 <Input
                   id="state"
                   value={formData.state}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, state: e.target.value }))
-                  }
+                  onChange={(e) => set("state", e.target.value)}
                   placeholder="State"
-                  required
+                  className={errors.state ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.state} />
               </div>
 
               <div className="space-y-2">
@@ -371,15 +607,12 @@ export function RegisterProjectForm({
                 <Input
                   id="pincode"
                   value={formData.pincode}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      pincode: e.target.value,
-                    }))
-                  }
-                  placeholder="Pincode"
-                  required
+                  onChange={(e) => set("pincode", e.target.value)}
+                  placeholder="560066"
+                  maxLength={6}
+                  className={errors.pincode ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.pincode} />
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -387,12 +620,7 @@ export function RegisterProjectForm({
                 <Input
                   id="landmark"
                   value={formData.landmark}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      landmark: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("landmark", e.target.value)}
                   placeholder="Nearby landmark"
                 />
               </div>
@@ -404,14 +632,11 @@ export function RegisterProjectForm({
                   type="number"
                   step="0.00000001"
                   value={formData.latitude}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      latitude: e.target.value,
-                    }))
-                  }
-                  placeholder="0.00000000"
+                  onChange={(e) => set("latitude", e.target.value)}
+                  placeholder="12.97194"
+                  className={errors.latitude ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.latitude} />
               </div>
 
               <div className="space-y-2">
@@ -421,20 +646,17 @@ export function RegisterProjectForm({
                   type="number"
                   step="0.00000001"
                   value={formData.longitude}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      longitude: e.target.value,
-                    }))
-                  }
-                  placeholder="0.00000000"
+                  onChange={(e) => set("longitude", e.target.value)}
+                  placeholder="77.75070"
+                  className={errors.longitude ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.longitude} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Project Details */}
+        {/* ── Project Details ── */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">Project Details</h3>
@@ -447,37 +669,29 @@ export function RegisterProjectForm({
                     id="total_land_area"
                     type="number"
                     step="0.01"
+                    min="0"
                     value={formData.total_land_area}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        total_land_area: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => set("total_land_area", e.target.value)}
                     placeholder="0.00"
-                    className="flex-1"
+                    className={`flex-1 ${errors.total_land_area ? "border-red-500" : ""}`}
                   />
                   <Select
                     value={formData.land_area_unit}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        land_area_unit: value,
-                      }))
-                    }
+                    onValueChange={(v) => set("land_area_unit", v)}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {landAreaUnits.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit}
+                      {landAreaUnits.map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {u}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+                <FieldError msg={errors.total_land_area} />
               </div>
 
               <div className="space-y-2">
@@ -488,15 +702,13 @@ export function RegisterProjectForm({
                   id="total_built_up_area"
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.total_built_up_area}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      total_built_up_area: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("total_built_up_area", e.target.value)}
                   placeholder="0.00"
+                  className={errors.total_built_up_area ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.total_built_up_area} />
               </div>
 
               <div className="space-y-2">
@@ -506,15 +718,13 @@ export function RegisterProjectForm({
                 <Input
                   id="number_of_towers"
                   type="number"
+                  min="1"
                   value={formData.number_of_towers}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      number_of_towers: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("number_of_towers", e.target.value)}
                   placeholder="0"
+                  className={errors.number_of_towers ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.number_of_towers} />
               </div>
 
               <div className="space-y-2">
@@ -522,22 +732,19 @@ export function RegisterProjectForm({
                 <Input
                   id="total_units"
                   type="number"
+                  min="1"
                   value={formData.total_units}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      total_units: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => set("total_units", e.target.value)}
                   placeholder="0"
-                  required
+                  className={errors.total_units ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.total_units} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Dates & Status */}
+        {/* ── Dates & Status ── */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">Dates & Status</h3>
@@ -549,14 +756,10 @@ export function RegisterProjectForm({
                   id="launch_date"
                   type="date"
                   value={formData.launch_date}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      launch_date: e.target.value,
-                    }))
-                  }
-                  required
+                  onChange={(e) => set("launch_date", e.target.value)}
+                  className={errors.launch_date ? "border-red-500" : ""}
                 />
+                <FieldError msg={errors.launch_date} />
               </div>
 
               <div className="space-y-2">
@@ -568,13 +771,13 @@ export function RegisterProjectForm({
                   type="date"
                   value={formData.expected_completion_date}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      expected_completion_date: e.target.value,
-                    }))
+                    set("expected_completion_date", e.target.value)
                   }
-                  required
+                  className={
+                    errors.expected_completion_date ? "border-red-500" : ""
+                  }
                 />
+                <FieldError msg={errors.expected_completion_date} />
               </div>
 
               <div className="space-y-2">
@@ -586,53 +789,51 @@ export function RegisterProjectForm({
                   type="date"
                   value={formData.actual_completion_date}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      actual_completion_date: e.target.value,
-                    }))
+                    set("actual_completion_date", e.target.value)
+                  }
+                  className={
+                    errors.actual_completion_date ? "border-red-500" : ""
                   }
                 />
+                <FieldError msg={errors.actual_completion_date} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="project_status">Project Status *</Label>
                 <Select
                   value={formData.project_status}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, project_status: value }))
-                  }
+                  onValueChange={(v) => set("project_status", v)}
                 >
-                  <SelectTrigger id="project_status">
+                  <SelectTrigger
+                    id="project_status"
+                    className={errors.project_status ? "border-red-500" : ""}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {projectStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
+                    {projectStatuses.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError msg={errors.project_status} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="possession_status">Possession Status</Label>
                 <Select
                   value={formData.possession_status}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      possession_status: value,
-                    }))
-                  }
+                  onValueChange={(v) => set("possession_status", v)}
                 >
                   <SelectTrigger id="possession_status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {possessionStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
+                    {possessionStatuses.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -650,36 +851,67 @@ export function RegisterProjectForm({
                   max="100"
                   value={formData.construction_stage_percentage}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      construction_stage_percentage: e.target.value,
-                    }))
+                    set("construction_stage_percentage", e.target.value)
                   }
-                  placeholder="0-100"
+                  placeholder="0–100"
+                  className={
+                    errors.construction_stage_percentage ? "border-red-500" : ""
+                  }
                 />
+                <FieldError msg={errors.construction_stage_percentage} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Amenities */}
+        {/* ── Amenities ── */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">Amenities</h3>
 
+            {/* Preset chips */}
+            <div className="mb-3 flex flex-wrap gap-2">
+              {PRESET_AMENITIES.map((a) => {
+                const selected = formData.amenities.includes(a);
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() =>
+                      selected
+                        ? removeAmenity(formData.amenities.indexOf(a))
+                        : addAmenity(a)
+                    }
+                    className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                      selected
+                        ? "border-green-600 bg-green-100 text-green-800"
+                        : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {selected && <span className="mr-1">✓</span>}
+                    {a}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom amenity input */}
             <div className="flex gap-2">
               <Input
                 value={currentAmenity}
                 onChange={(e) => setCurrentAmenity(e.target.value)}
-                placeholder="Enter amenity (e.g., Swimming Pool, Gym, Club House)"
-                onKeyPress={(e) =>
-                  e.key === "Enter" && (e.preventDefault(), addAmenity())
-                }
+                placeholder="Add custom amenity (e.g., Rooftop Garden)"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addAmenity();
+                  }
+                }}
                 className="flex-1"
               />
               <Button
                 type="button"
-                onClick={addAmenity}
+                onClick={() => addAmenity()}
                 size="icon"
                 className="shrink-0"
               >
@@ -687,6 +919,7 @@ export function RegisterProjectForm({
               </Button>
             </div>
 
+            {/* Selected tags */}
             {formData.amenities.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {formData.amenities.map((amenity, index) => (
@@ -709,7 +942,7 @@ export function RegisterProjectForm({
           </CardContent>
         </Card>
 
-        {/* Payment Plan */}
+        {/* ── Payment Plan ── */}
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-4 text-base font-semibold">
@@ -718,9 +951,7 @@ export function RegisterProjectForm({
 
             <RadioGroup
               value={formData.selectedPaymentPlan}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, selectedPaymentPlan: value }))
-              }
+              onValueChange={(v) => set("selectedPaymentPlan", v)}
               className="space-y-3"
             >
               {paymentPlans.map((plan) => (
@@ -749,11 +980,26 @@ export function RegisterProjectForm({
           </CardContent>
         </Card>
 
+        {/* ── Actions ── */}
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button type="submit">Add Project</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting…
+              </>
+            ) : (
+              "Add Project"
+            )}
+          </Button>
         </div>
       </form>
     </div>

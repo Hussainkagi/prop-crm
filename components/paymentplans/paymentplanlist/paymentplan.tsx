@@ -154,13 +154,6 @@ export function PaymentPlansList() {
       filterable: true,
     },
     {
-      key: "project_name",
-      header: "Project",
-      width: "180px",
-      sortable: true,
-      filterable: true,
-    },
-    {
       key: "plan_type",
       header: "Type",
       width: "160px",

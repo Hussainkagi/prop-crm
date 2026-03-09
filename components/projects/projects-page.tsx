@@ -1,129 +1,225 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Building, MapPin, Calendar, IndianRupee } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Plus,
+  Building,
+  MapPin,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   RegisterProjectForm,
   type ProjectFormData,
 } from "./forms/project-form";
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface Project {
-  id: string;
-  developer_id: string;
+  project_id: number;
   project_name: string;
   project_type: string;
   project_category: string;
-  rera_registration_number: string;
   locality: string;
   city: string;
   state: string;
+  pincode: string;
   total_units: number;
-  sold_units: number;
-  number_of_towers: number;
-  project_status: string;
   possession_status: string;
+  project_status: string;
+  construction_stage_percentage: number;
+  status: string;
   launch_date: string;
   expected_completion_date: string;
-  construction_stage_percentage: number;
-  amenities: string[];
-  // Display helpers
-  developerName?: string;
-  fullAddress?: string;
+  developer_name: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const initialProjects: Project[] = [
-  {
-    id: "1",
-    developer_id: "1",
-    developerName: "Skyline Builders Pvt Ltd",
-    project_name: "Skyline Heights",
-    project_type: "Residential",
-    project_category: "Luxury",
-    rera_registration_number: "RERA/MH/2024/001",
-    locality: "Andheri East",
-    city: "Mumbai",
-    state: "Maharashtra",
-    fullAddress: "Andheri East, Mumbai, Maharashtra",
-    total_units: 120,
-    sold_units: 85,
-    number_of_towers: 3,
-    project_status: "Under Construction",
-    possession_status: "Under Construction",
-    launch_date: "2024-01-15",
-    expected_completion_date: "2026-12-31",
-    construction_stage_percentage: 45,
-    amenities: ["Swimming Pool", "Gym", "Club House", "Children's Play Area"],
-  },
-];
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+// ─── Skeleton Card ────────────────────────────────────────────────────────────
+
+function ProjectCardSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-36" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-5 w-28 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-52" />
+            <Skeleton className="h-4 w-36" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-44" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-2 w-full rounded-full" />
+          </div>
+        </div>
+        <div className="mt-4 border-t pt-4">
+          <Skeleton className="mb-2 h-4 w-20" />
+          <div className="flex gap-2">
+            <Skeleton className="h-5 w-24 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-5 w-28 rounded-full" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Status helpers ───────────────────────────────────────────────────────────
+
+function getStatusVariant(
+  status: string,
+): "default" | "secondary" | "outline" | "destructive" {
+  switch (status) {
+    case "Under Construction":
+      return "default";
+    case "Completed":
+      return "secondary";
+    case "On Hold":
+      return "outline";
+    case "Cancelled":
+      return "destructive";
+    default:
+      return "default";
+  }
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const handleRegister = (data: ProjectFormData) => {
-    // Map form data to project structure
-    const project: Project = {
-      id: Date.now().toString(),
-      developer_id: data.developer_id,
-      developerName: getDeveloperName(data.developer_id), // Helper function to get name
-      project_name: data.project_name,
-      project_type: data.project_type,
-      project_category: data.project_category,
-      rera_registration_number: data.rera_registration_number,
-      locality: data.locality,
-      city: data.city,
-      state: data.state,
-      fullAddress: `${data.locality}, ${data.city}, ${data.state}`,
-      total_units: parseInt(data.total_units) || 0,
-      sold_units: 0,
-      number_of_towers: parseInt(data.number_of_towers) || 0,
-      project_status: data.project_status,
-      possession_status: data.possession_status,
-      launch_date: data.launch_date,
-      expected_completion_date: data.expected_completion_date,
-      construction_stage_percentage:
-        parseInt(data.construction_stage_percentage) || 0,
-      amenities: data.amenities,
-    };
+  const LIMIT = 10;
 
-    setProjects((prev) => [...prev, project]);
-    setShowForm(false);
-  };
+  // ── fetch projects ──
+  const fetchProjects = useCallback(async (page: number) => {
+    setIsLoading(true);
+    setFetchError(null);
 
-  // Helper function to map developer_id to name
-  const getDeveloperName = (developerId: string): string => {
-    const developerMap: Record<string, string> = {
-      "1": "Skyline Builders Pvt Ltd",
-      "2": "Green Valley Developers",
-      "3": "Metro Properties",
-    };
-    return developerMap[developerId] || "Unknown Developer";
-  };
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("crm_access_token")
+        : null;
 
-  const getStatusVariant = (
-    status: string,
-  ): "default" | "secondary" | "outline" | "destructive" => {
-    switch (status) {
-      case "Under Construction":
-        return "default";
-      case "Completed":
-        return "secondary";
-      case "On Hold":
-        return "outline";
-      case "Cancelled":
-        return "destructive";
-      default:
-        return "default";
+    try {
+      const res = await fetch(
+        `${BASE_URL}/projects?page=${page}&limit=${LIMIT}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        },
+      );
+
+      if (!res.ok) {
+        let msg = `Error ${res.status}`;
+        try {
+          const err = await res.json();
+          msg = err?.message ?? err?.error ?? msg;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(msg);
+      }
+
+      const json = await res.json();
+      if (!json.success)
+        throw new Error(json.message ?? "Failed to load projects.");
+
+      setProjects(json.data);
+      setPagination(json.pagination);
+    } catch (err: unknown) {
+      setFetchError(
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
+    } finally {
+      // keep skeleton visible for at least 500ms so it doesn't flash
+      setTimeout(() => setIsLoading(false), 500);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchProjects(currentPage);
+  }, [currentPage, fetchProjects]);
+
+  // ── after successful form submit, refresh list ──
+  const handleRegister = (_data: ProjectFormData) => {
+    setShowForm(false);
+    setCurrentPage(1);
+    fetchProjects(1);
   };
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Project Management</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Project Management</h1>
+          {pagination && !isLoading && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {pagination.total} project{pagination.total !== 1 ? "s" : ""}{" "}
+              found
+            </p>
+          )}
+        </div>
         {!showForm && (
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -132,6 +228,7 @@ function ProjectsPage() {
         )}
       </div>
 
+      {/* Form */}
       {showForm ? (
         <RegisterProjectForm
           onSubmit={handleRegister}
@@ -139,136 +236,198 @@ function ProjectsPage() {
         />
       ) : (
         <>
-          <div className="space-y-4">
-            {projects.map((project) => (
-              <Card key={project.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">
-                        {project.project_name}
-                      </CardTitle>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        RERA: {project.rera_registration_number}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge variant={getStatusVariant(project.project_status)}>
-                        {project.project_status}
-                      </Badge>
-                      {project.project_category && (
-                        <Badge variant="outline">
-                          {project.project_category}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    {/* Column 1: Basic Info */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Building className="h-4 w-4" />
-                        <span>{project.developerName}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span>{project.fullAddress}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>Launch: {project.launch_date}</span>
-                      </div>
-                    </div>
+          {/* Fetch error */}
+          {fetchError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>{fetchError}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-4 shrink-0"
+                  onClick={() => fetchProjects(currentPage)}
+                >
+                  Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
-                    {/* Column 2: Project Details */}
-                    <div className="space-y-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Type:</span>{" "}
-                        <span className="font-medium">
-                          {project.project_type}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Units:</span>{" "}
-                        <span className="font-medium">
-                          {project.sold_units}/{project.total_units}
-                        </span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          (
-                          {Math.round(
-                            (project.sold_units / project.total_units) * 100,
+          {/* Skeleton loading */}
+          {isLoading && (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <ProjectCardSkeleton key={i} />
+              ))}
+            </div>
+          )}
+
+          {/* Project list */}
+          {!isLoading && !fetchError && (
+            <>
+              <div className="space-y-4">
+                {projects.map((project) => (
+                  <Card key={project.project_id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg">
+                            {project.project_name}
+                          </CardTitle>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {project.locality}, {project.city}, {project.state}{" "}
+                            — {project.pincode}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Badge
+                            variant={getStatusVariant(project.project_status)}
+                          >
+                            {project.project_status}
+                          </Badge>
+                          {project.project_category && (
+                            <Badge variant="outline">
+                              {project.project_category}
+                            </Badge>
                           )}
-                          % sold)
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Towers:</span>{" "}
-                        <span className="font-medium">
-                          {project.number_of_towers}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Column 3: Status & Progress */}
-                    <div className="space-y-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">
-                          Possession:
-                        </span>{" "}
-                        <span className="font-medium">
-                          {project.possession_status}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">
-                          Completion:
-                        </span>{" "}
-                        <span className="font-medium">
-                          {project.expected_completion_date}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Progress:</span>{" "}
-                        <span className="font-medium">
-                          {project.construction_stage_percentage}%
-                        </span>
-                        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary">
-                          <div
-                            className="h-full bg-green-600 transition-all"
-                            style={{
-                              width: `${project.construction_stage_percentage}%`,
-                            }}
-                          />
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </CardHeader>
 
-                  {/* Amenities */}
-                  {project.amenities && project.amenities.length > 0 && (
-                    <div className="mt-4 border-t pt-4">
-                      <p className="mb-2 text-sm font-medium">Amenities:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {project.amenities.map((amenity, index) => (
-                          <Badge key={index} variant="secondary">
-                            {amenity}
-                          </Badge>
-                        ))}
+                    <CardContent>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        {/* Column 1 */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Building className="h-4 w-4 shrink-0" />
+                            <span>{project.developer_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4 shrink-0" />
+                            <span>
+                              {project.locality}, {project.city}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4 shrink-0" />
+                            <span>
+                              Launch: {formatDate(project.launch_date)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Column 2 */}
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Type:</span>{" "}
+                            <span className="font-medium">
+                              {project.project_type}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">
+                              Total Units:
+                            </span>{" "}
+                            <span className="font-medium">
+                              {project.total_units}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">
+                              Possession:
+                            </span>{" "}
+                            <span className="font-medium">
+                              {project.possession_status}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Column 3 */}
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">
+                              Expected Completion:
+                            </span>{" "}
+                            <span className="font-medium">
+                              {formatDate(project.expected_completion_date)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">
+                              Status:
+                            </span>{" "}
+                            <span className="font-medium">
+                              {project.status}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="mb-1 flex items-center justify-between">
+                              <span className="text-muted-foreground">
+                                Progress:
+                              </span>
+                              <span className="font-medium">
+                                {project.construction_stage_percentage}%
+                              </span>
+                            </div>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                              <div
+                                className="h-full bg-green-600 transition-all"
+                                style={{
+                                  width: `${project.construction_stage_percentage}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-          {projects.length === 0 && (
-            <div className="py-12 text-center text-muted-foreground">
-              No projects registered yet. Click the button above to add a new
-              project.
-            </div>
+              {/* Empty state */}
+              {projects.length === 0 && (
+                <div className="rounded-lg border border-dashed py-16 text-center text-muted-foreground">
+                  <Building className="mx-auto mb-3 h-10 w-10 opacity-30" />
+                  <p className="font-medium">No projects found</p>
+                  <p className="mt-1 text-sm">
+                    Click &quot;Add New Project&quot; to register your first
+                    project.
+                  </p>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {pagination && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between border-t pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Page {pagination.page} of {pagination.totalPages}{" "}
+                    &nbsp;·&nbsp; {pagination.total} total
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!pagination.hasPrevPage}
+                      onClick={() => setCurrentPage((p) => p - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!pagination.hasNextPage}
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
