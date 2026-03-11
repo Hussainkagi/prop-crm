@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Building,
@@ -9,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,14 +92,6 @@ function ProjectCardSkeleton() {
             <Skeleton className="h-2 w-full rounded-full" />
           </div>
         </div>
-        <div className="mt-4 border-t pt-4">
-          <Skeleton className="mb-2 h-4 w-20" />
-          <div className="flex gap-2">
-            <Skeleton className="h-5 w-24 rounded-full" />
-            <Skeleton className="h-5 w-20 rounded-full" />
-            <Skeleton className="h-5 w-28 rounded-full" />
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
@@ -137,6 +131,7 @@ function formatDate(iso: string): string {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function ProjectsPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,7 +141,6 @@ function ProjectsPage() {
 
   const LIMIT = 10;
 
-  // ── fetch projects ──
   const fetchProjects = useCallback(async (page: number) => {
     setIsLoading(true);
     setFetchError(null);
@@ -189,7 +183,6 @@ function ProjectsPage() {
         err instanceof Error ? err.message : "Something went wrong.",
       );
     } finally {
-      // keep skeleton visible for at least 500ms so it doesn't flash
       setTimeout(() => setIsLoading(false), 500);
     }
   }, []);
@@ -198,14 +191,11 @@ function ProjectsPage() {
     fetchProjects(currentPage);
   }, [currentPage, fetchProjects]);
 
-  // ── after successful form submit, refresh list ──
   const handleRegister = (_data: ProjectFormData) => {
     setShowForm(false);
     setCurrentPage(1);
     fetchProjects(1);
   };
-
-  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
@@ -236,7 +226,6 @@ function ProjectsPage() {
         />
       ) : (
         <>
-          {/* Fetch error */}
           {fetchError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -254,7 +243,6 @@ function ProjectsPage() {
             </Alert>
           )}
 
-          {/* Skeleton loading */}
           {isLoading && (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -263,12 +251,17 @@ function ProjectsPage() {
             </div>
           )}
 
-          {/* Project list */}
           {!isLoading && !fetchError && (
             <>
               <div className="space-y-4">
                 {projects.map((project) => (
-                  <Card key={project.project_id}>
+                  <Card
+                    key={project.project_id}
+                    className="cursor-pointer transition-shadow hover:shadow-md"
+                    onClick={() =>
+                      router.push(`/projects/${project.project_id}`)
+                    }
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div>
@@ -280,7 +273,7 @@ function ProjectsPage() {
                             — {project.pincode}
                           </p>
                         </div>
-                        <div className="flex flex-wrap justify-end gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                           <Badge
                             variant={getStatusVariant(project.project_status)}
                           >
@@ -291,13 +284,13 @@ function ProjectsPage() {
                               {project.project_category}
                             </Badge>
                           )}
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </div>
                     </CardHeader>
 
                     <CardContent>
                       <div className="grid gap-4 md:grid-cols-3">
-                        {/* Column 1 */}
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Building className="h-4 w-4 shrink-0" />
@@ -317,7 +310,6 @@ function ProjectsPage() {
                           </div>
                         </div>
 
-                        {/* Column 2 */}
                         <div className="space-y-3 text-sm">
                           <div>
                             <span className="text-muted-foreground">Type:</span>{" "}
@@ -343,7 +335,6 @@ function ProjectsPage() {
                           </div>
                         </div>
 
-                        {/* Column 3 */}
                         <div className="space-y-3 text-sm">
                           <div>
                             <span className="text-muted-foreground">
@@ -386,7 +377,6 @@ function ProjectsPage() {
                 ))}
               </div>
 
-              {/* Empty state */}
               {projects.length === 0 && (
                 <div className="rounded-lg border border-dashed py-16 text-center text-muted-foreground">
                   <Building className="mx-auto mb-3 h-10 w-10 opacity-30" />
@@ -398,7 +388,6 @@ function ProjectsPage() {
                 </div>
               )}
 
-              {/* Pagination */}
               {pagination && pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between border-t pt-4">
                   <p className="text-sm text-muted-foreground">
@@ -410,7 +399,10 @@ function ProjectsPage() {
                       variant="outline"
                       size="sm"
                       disabled={!pagination.hasPrevPage}
-                      onClick={() => setCurrentPage((p) => p - 1)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentPage((p) => p - 1);
+                      }}
                     >
                       <ChevronLeft className="h-4 w-4" />
                       Previous
@@ -419,7 +411,10 @@ function ProjectsPage() {
                       variant="outline"
                       size="sm"
                       disabled={!pagination.hasNextPage}
-                      onClick={() => setCurrentPage((p) => p + 1)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentPage((p) => p + 1);
+                      }}
                     >
                       Next
                       <ChevronRight className="h-4 w-4" />

@@ -1,16 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const CUSTOM_PLAN_ID = -1; // sentinel value — never a real plan_id
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +30,22 @@ interface ApiProject {
   developer_name: string;
   created_at: string;
   updated_at: string;
+}
+
+interface PaymentPlan {
+  plan_id: number;
+  plan_code: string;
+  plan_name: string;
+  plan_type: string;
+  plan_status: string;
+  penalty_terms: string;
+  special_offers: Record<string, string> | null;
+  vat_percentage: number;
+  grace_period_days: number;
+  total_installments: number;
+  down_payment_percentage: number;
+  booking_amount_percentage: number;
+  early_payment_discount_percentage: number;
 }
 
 interface CustomerPropertyPlanFormProps {
@@ -77,7 +90,7 @@ function StepBadge({
   );
 }
 
-// ─── Project card skeleton ────────────────────────────────────────────────────
+// ─── Skeletons ────────────────────────────────────────────────────────────────
 
 function ProjectCardSkeleton() {
   return (
@@ -94,6 +107,193 @@ function ProjectCardSkeleton() {
   );
 }
 
+function PaymentPlanSkeleton() {
+  return (
+    <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+      <div className="flex items-start gap-3">
+        <Skeleton className="mt-0.5 h-4 w-4 rounded-full flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-52" />
+          <Skeleton className="h-3 w-36" />
+          <div className="flex gap-6 pt-1">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Custom Payment Plan card ─────────────────────────────────────────────────
+
+function CustomPaymentPlanCard({
+  isSelected,
+  onSelect,
+  file,
+  onFileChange,
+}: {
+  isSelected: boolean;
+  onSelect: () => void;
+  file: File | null;
+  onFileChange: (f: File | null) => void;
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0] ?? null;
+    if (picked) onFileChange(picked);
+    // reset so the same file can be re-picked after removal
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onFileChange(null);
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div
+      onClick={onSelect}
+      className={`rounded-lg border-2 border-dashed p-4 cursor-pointer transition-all ${
+        isSelected
+          ? "border-purple-500 bg-purple-50"
+          : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {/* Radio dot */}
+        <div
+          className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+            isSelected ? "border-purple-600" : "border-gray-300"
+          }`}
+        >
+          {isSelected && <div className="h-2 w-2 rounded-full bg-purple-600" />}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-gray-900 text-sm">
+              Custom Payment Plan
+            </span>
+            <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">
+              Custom
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Upload your own payment schedule as an Excel file (.xlsx / .xls)
+          </p>
+
+          {/* Upload area — only interactive when this plan is selected */}
+          <div
+            className="mt-3"
+            onClick={(e) => e.stopPropagation()} // prevent toggling plan when clicking upload area
+          >
+            {!file ? (
+              <button
+                type="button"
+                disabled={!isSelected}
+                onClick={() => inputRef.current?.click()}
+                className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm transition-colors ${
+                  isSelected
+                    ? "border-purple-300 bg-white text-purple-700 hover:bg-purple-50 cursor-pointer"
+                    : "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                <svg
+                  className="h-4 w-4 flex-shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
+                </svg>
+                {isSelected
+                  ? "Click to upload Excel file"
+                  : "Select this plan to upload"}
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+                {/* Excel icon */}
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-green-600 text-white text-xs font-bold">
+                  XLS
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-800">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatBytes(file.size)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveFile}
+                  className="ml-1 flex-shrink-0 rounded-full p-1 text-gray-400 hover:bg-green-100 hover:text-red-500 transition-colors"
+                  title="Remove file"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Hidden file input */}
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Plan type badge ──────────────────────────────────────────────────────────
+
+function PlanTypeBadge({ type }: { type: string }) {
+  const colorMap: Record<string, string> = {
+    "Construction Linked": "bg-blue-100 text-blue-700",
+    "Time Linked": "bg-purple-100 text-purple-700",
+    "Down Payment": "bg-amber-100 text-amber-700",
+    Flexi: "bg-green-100 text-green-700",
+  };
+  return (
+    <span
+      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${colorMap[type] ?? "bg-gray-100 text-gray-600"}`}
+    >
+      {type}
+    </span>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CustomerPropertyPlanForm({
@@ -102,14 +302,24 @@ export function CustomerPropertyPlanForm({
   onSkip,
   apiBaseUrl,
 }: CustomerPropertyPlanFormProps) {
+  // Projects list
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [projectsError, setProjectsError] = useState<string | null>(null);
 
+  // Selected project
   const [selectedProject, setSelectedProject] = useState<ApiProject | null>(
     null,
   );
 
+  // Payment plans for selected project
+  const [paymentPlans, setPaymentPlans] = useState<PaymentPlan[]>([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+  const [plansError, setPlansError] = useState<string | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [customPlanFile, setCustomPlanFile] = useState<File | null>(null);
+
+  // Submit
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -125,7 +335,7 @@ export function CustomerPropertyPlanForm({
           : null;
 
       const [data] = await Promise.all([
-        fetch(`${apiBaseUrl}/projects?page=1&limit=10`, {
+        fetch(`${apiBaseUrl}/projects?page=1&limit=100`, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -140,7 +350,6 @@ export function CustomerPropertyPlanForm({
             setProjectsError(err.message || "Failed to load projects");
             return null;
           }),
-        // Enforce minimum 400ms skeleton
         new Promise((resolve) => setTimeout(resolve, 400)),
       ]);
 
@@ -154,7 +363,41 @@ export function CustomerPropertyPlanForm({
     fetchProjects();
   }, [apiBaseUrl]);
 
-  // ── Submit: PUT /api/customers/:id with plan_id = project_id ─────────────
+  // ── When project is selected, fetch its payment plans ───────────────────
+  const handleProjectSelect = async (project: ApiProject) => {
+    setSelectedProject(project);
+    setSelectedPlanId(null);
+    setCustomPlanFile(null);
+    setPaymentPlans([]);
+    setPlansError(null);
+    setPlansLoading(true);
+
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("crm_access_token")
+        : null;
+
+    try {
+      const res = await fetch(`${apiBaseUrl}/projects/${project.project_id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const json = await res.json();
+      const plans: PaymentPlan[] = json.data?.payment_plans ?? [];
+      setPaymentPlans(plans);
+    } catch (err: unknown) {
+      setPlansError(
+        err instanceof Error ? err.message : "Failed to load payment plans.",
+      );
+    } finally {
+      setPlansLoading(false);
+    }
+  };
+
+  // ── Submit ───────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setSubmitError(null);
 
@@ -162,6 +405,9 @@ export function CustomerPropertyPlanForm({
       setSubmitError("Please select a project.");
       return;
     }
+
+    // If custom plan selected but no file uploaded, warn but don't block
+    const isCustomPlan = selectedPlanId === CUSTOM_PLAN_ID;
 
     setSubmitLoading(true);
 
@@ -171,17 +417,51 @@ export function CustomerPropertyPlanForm({
         : null;
 
     try {
+      // Step 1: update customer with project (and plan if a real plan is selected)
+      const body: Record<string, unknown> = {
+        plan_id: selectedProject.project_id,
+      };
+      if (selectedPlanId !== null && !isCustomPlan) {
+        body.payment_plan_id = selectedPlanId;
+      }
+
       const res = await fetch(`${apiBaseUrl}/customers/${customerId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ plan_id: selectedProject.project_id }),
+        body: JSON.stringify(body),
       });
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed to update customer");
+
+      // Step 2: if custom plan with a file, upload via multipart
+      if (isCustomPlan && customPlanFile) {
+        const formData = new FormData();
+        formData.append("file", customPlanFile);
+        formData.append("customer_id", String(customerId));
+        formData.append("project_id", String(selectedProject.project_id));
+
+        const uploadRes = await fetch(
+          `${apiBaseUrl}/customers/${customerId}/payment-plan/upload`,
+          {
+            method: "POST",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: formData,
+          },
+        );
+
+        if (!uploadRes.ok) {
+          const uploadJson = await uploadRes.json().catch(() => ({}));
+          throw new Error(
+            uploadJson.message || "Customer saved but file upload failed.",
+          );
+        }
+      }
 
       onSuccess();
     } catch (err: unknown) {
@@ -212,7 +492,7 @@ export function CustomerPropertyPlanForm({
         </div>
       )}
 
-      {/* Project Selection */}
+      {/* ── Project Selection ── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
@@ -242,7 +522,7 @@ export function CustomerPropertyPlanForm({
                 return (
                   <div
                     key={project.project_id}
-                    onClick={() => setSelectedProject(project)}
+                    onClick={() => handleProjectSelect(project)}
                     className={`rounded-lg border p-4 cursor-pointer transition-all ${
                       isSelected
                         ? "border-purple-600 bg-purple-50 shadow-sm"
@@ -250,7 +530,6 @@ export function CustomerPropertyPlanForm({
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      {/* Radio dot */}
                       <div
                         className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                           isSelected ? "border-purple-600" : "border-gray-300"
@@ -313,7 +592,6 @@ export function CustomerPropertyPlanForm({
                           </span>
                         </div>
 
-                        {/* Construction progress bar */}
                         <div className="mt-2">
                           <div className="flex justify-between text-xs text-gray-500 mb-1">
                             <span>Construction progress</span>
@@ -340,6 +618,157 @@ export function CustomerPropertyPlanForm({
         </CardContent>
       </Card>
 
+      {/* ── Payment Plans (shown after project selection) ── */}
+      {selectedProject && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              Select Payment Plan
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Payment plans available for{" "}
+              <span className="font-medium text-gray-700">
+                {selectedProject.project_name}
+              </span>
+            </p>
+          </CardHeader>
+          <CardContent>
+            {plansLoading ? (
+              <div className="space-y-3">
+                <PaymentPlanSkeleton />
+                <PaymentPlanSkeleton />
+              </div>
+            ) : plansError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {plansError}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* ── Regular plans (if any) ── */}
+                {paymentPlans.map((plan) => {
+                  const isSelected = selectedPlanId === plan.plan_id;
+                  return (
+                    <div
+                      key={plan.plan_id}
+                      onClick={() =>
+                        setSelectedPlanId(isSelected ? null : plan.plan_id)
+                      }
+                      className={`rounded-lg border p-4 cursor-pointer transition-all ${
+                        isSelected
+                          ? "border-purple-600 bg-purple-50 shadow-sm"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            isSelected ? "border-purple-600" : "border-gray-300"
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="h-2 w-2 rounded-full bg-purple-600" />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-gray-900 text-sm">
+                              {plan.plan_name}
+                            </span>
+                            <PlanTypeBadge type={plan.plan_type} />
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                plan.plan_status === "Active"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-500"
+                              }`}
+                            >
+                              {plan.plan_status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                            {plan.plan_code}
+                          </p>
+                          <div className="flex flex-wrap gap-4 mt-2 text-xs text-gray-500">
+                            <span>
+                              <span className="font-medium text-gray-700">
+                                Installments:
+                              </span>{" "}
+                              {plan.total_installments}
+                            </span>
+                            <span>
+                              <span className="font-medium text-gray-700">
+                                Booking:
+                              </span>{" "}
+                              {plan.booking_amount_percentage}%
+                            </span>
+                            <span>
+                              <span className="font-medium text-gray-700">
+                                Down Payment:
+                              </span>{" "}
+                              {plan.down_payment_percentage}%
+                            </span>
+                            <span>
+                              <span className="font-medium text-gray-700">
+                                VAT:
+                              </span>{" "}
+                              {plan.vat_percentage}%
+                            </span>
+                            {plan.early_payment_discount_percentage > 0 && (
+                              <span>
+                                <span className="font-medium text-green-700">
+                                  Early discount:
+                                </span>{" "}
+                                <span className="text-green-700">
+                                  {plan.early_payment_discount_percentage}%
+                                </span>
+                              </span>
+                            )}
+                          </div>
+                          {plan.special_offers &&
+                            Object.keys(plan.special_offers).length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {Object.values(plan.special_offers).map(
+                                  (offer, i) => (
+                                    <span
+                                      key={i}
+                                      className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs text-amber-700"
+                                    >
+                                      🎁 {offer}
+                                    </span>
+                                  ),
+                                )}
+                              </div>
+                            )}
+                          {plan.penalty_terms && (
+                            <p className="mt-2 text-xs text-gray-400 italic">
+                              Penalty: {plan.penalty_terms}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* ── Custom Payment Plan (always shown) ── */}
+                <CustomPaymentPlanCard
+                  isSelected={selectedPlanId === CUSTOM_PLAN_ID}
+                  onSelect={() =>
+                    setSelectedPlanId(
+                      selectedPlanId === CUSTOM_PLAN_ID ? null : CUSTOM_PLAN_ID,
+                    )
+                  }
+                  file={customPlanFile}
+                  onFileChange={setCustomPlanFile}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Actions ── */}
       <div className="flex justify-between gap-3 pb-6">
         <Button variant="ghost" onClick={onSkip} disabled={submitLoading}>
           Skip for now
