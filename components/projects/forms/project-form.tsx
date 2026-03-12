@@ -209,9 +209,12 @@ async function fetchPaymentPlans(): Promise<PaymentPlan[]> {
   const token = getToken();
   if (!token) throw new Error("No access token found.");
 
-  const res = await fetch(`${BASE_URL}/payment-plans?page=1&limit=100`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await fetch(
+    `${BASE_URL}/payment-plans?page=1&limit=100&status=Active`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
   if (!res.ok) throw new Error(`Failed to fetch payment plans: ${res.status}`);
   const json = await res.json();
   return json.data as PaymentPlan[];

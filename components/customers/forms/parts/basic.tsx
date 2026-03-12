@@ -50,7 +50,8 @@ export interface CustomerBasicData {
 }
 
 interface CustomerBasicInfoFormProps {
-  onSuccess: (customerId: number) => void;
+  // Now surfaces both customer_id AND developer_id from the API response
+  onSuccess: (customerId: number, developerId: number) => void;
   onCancel: () => void;
   apiBaseUrl: string;
 }
@@ -144,7 +145,6 @@ export function CustomerBasicInfoForm({
 
   const set = (field: keyof CustomerBasicData, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-    // Clear that field's error as user corrects it
     if (fieldErrors[field]) {
       setFieldErrors((prev) => {
         const next = { ...prev };
@@ -158,7 +158,6 @@ export function CustomerBasicInfoForm({
     setGlobalError(null);
     setFieldErrors({});
 
-    // Client-side required checks
     const clientErrors: Record<string, string> = {};
     if (!form.first_name) clientErrors.first_name = "First name is required.";
     if (!form.last_name) clientErrors.last_name = "Last name is required.";
@@ -192,7 +191,6 @@ export function CustomerBasicInfoForm({
         years_at_current_address: form.years_at_current_address
           ? parseInt(form.years_at_current_address)
           : undefined,
-        // When same as corr, explicitly copy corr fields into perm so backend validation passes
         ...(form.perm_same_as_corr && {
           perm_address_line1: form.corr_address_line1,
           perm_address_line2: form.corr_address_line2,
@@ -216,7 +214,6 @@ export function CustomerBasicInfoForm({
       const json = await res.json();
 
       if (!res.ok) {
-        // Map API field-level errors onto each field
         if (json.errors && Array.isArray(json.errors)) {
           const apiErrors: Record<string, string> = {};
           for (const e of json.errors) {
@@ -230,7 +227,8 @@ export function CustomerBasicInfoForm({
         return;
       }
 
-      onSuccess(json.data.customer_id);
+      // Pass both customer_id and developer_id up to the parent flow
+      onSuccess(json.data.customer_id, json.data.developer_id);
     } catch (err: unknown) {
       setGlobalError(
         err instanceof Error ? err.message : "Something went wrong",

@@ -20,9 +20,11 @@ export function RegisterCustomerFlow({
 }: RegisterCustomerFlowProps) {
   const [step, setStep] = useState<FlowStep>("basic");
   const [customerId, setCustomerId] = useState<number | null>(null);
+  const [developerId, setDeveloperId] = useState<number | null>(null);
 
-  const handleBasicSuccess = (id: number) => {
+  const handleBasicSuccess = (id: number, devId: number) => {
     setCustomerId(id);
+    setDeveloperId(devId);
     setStep("property");
   };
 
@@ -48,11 +50,12 @@ export function RegisterCustomerFlow({
     );
   }
 
-  if (step === "property" && customerId !== null) {
+  if (step === "property" && customerId !== null && developerId !== null) {
     return (
       <CustomerPropertyPlanForm
         apiBaseUrl={apiBaseUrl}
         customerId={customerId}
+        developerId={developerId}
         onSuccess={handlePropertySuccess}
         onSkip={handleSkip}
       />

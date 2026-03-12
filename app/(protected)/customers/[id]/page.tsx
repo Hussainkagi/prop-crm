@@ -51,6 +51,7 @@ export interface ApiCustomerDetail {
   updated_at: string;
   developer_id: number;
   plan_id: number | null;
+  project_id: number | null;
 }
 
 type ActiveTab = "details" | "project";
@@ -375,6 +376,9 @@ export default function CustomerDetailPage({
             <CustomerPropertyPlanForm
               customerId={customerId}
               apiBaseUrl={apiBaseUrl}
+              developerId={customer.developer_id}
+              existingProjectId={customer.project_id}
+              existingPlanId={customer.plan_id}
               onSuccess={() => {
                 fetchCustomer();
               }}

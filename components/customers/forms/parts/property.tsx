@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CUSTOM_PLAN_ID = -1; // sentinel value — never a real plan_id
+const CUSTOM_PLAN_ID = -1;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +34,7 @@ interface ApiProject {
 
 interface PaymentPlan {
   plan_id: number;
+  project_id: number;
   plan_code: string;
   plan_name: string;
   plan_type: string;
@@ -50,12 +51,15 @@ interface PaymentPlan {
 
 interface CustomerPropertyPlanFormProps {
   customerId: number;
+  developerId: number;
+  existingProjectId?: number | null;
+  existingPlanId?: number | null;
   onSuccess: () => void;
   onSkip: () => void;
   apiBaseUrl: string;
 }
 
-// ─── Step badge helper ────────────────────────────────────────────────────────
+// ─── Step badge ───────────────────────────────────────────────────────────────
 
 function StepBadge({
   number,
@@ -144,7 +148,6 @@ function CustomPaymentPlanCard({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files?.[0] ?? null;
     if (picked) onFileChange(picked);
-    // reset so the same file can be re-picked after removal
     e.target.value = "";
   };
 
@@ -169,7 +172,6 @@ function CustomPaymentPlanCard({
       }`}
     >
       <div className="flex items-start gap-3">
-        {/* Radio dot */}
         <div
           className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
             isSelected ? "border-purple-600" : "border-gray-300"
@@ -191,11 +193,7 @@ function CustomPaymentPlanCard({
             Upload your own payment schedule as an Excel file (.xlsx / .xls)
           </p>
 
-          {/* Upload area — only interactive when this plan is selected */}
-          <div
-            className="mt-3"
-            onClick={(e) => e.stopPropagation()} // prevent toggling plan when clicking upload area
-          >
+          <div className="mt-3" onClick={(e) => e.stopPropagation()}>
             {!file ? (
               <button
                 type="button"
@@ -226,7 +224,6 @@ function CustomPaymentPlanCard({
               </button>
             ) : (
               <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
-                {/* Excel icon */}
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-green-600 text-white text-xs font-bold">
                   XLS
                 </div>
@@ -260,8 +257,6 @@ function CustomPaymentPlanCard({
                 </button>
               </div>
             )}
-
-            {/* Hidden file input */}
             <input
               ref={inputRef}
               type="file"
@@ -294,34 +289,67 @@ function PlanTypeBadge({ type }: { type: string }) {
   );
 }
 
+// ─── Submit step label helper ─────────────────────────────────────────────────
+
+type SubmitStep =
+  | "idle"
+  | "creating_booking"
+  | "generating_schedule"
+  | "uploading_plan"
+  | "done";
+
+function submitLabel(step: SubmitStep): string {
+  switch (step) {
+    case "creating_booking":
+      return "Creating booking…";
+    case "generating_schedule":
+      return "Generating payment schedule…";
+    case "uploading_plan":
+      return "Uploading custom plan…";
+    default:
+      return "Save & Finish";
+  }
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CustomerPropertyPlanForm({
   customerId,
+  developerId,
+  existingProjectId,
+  existingPlanId,
   onSuccess,
   onSkip,
   apiBaseUrl,
 }: CustomerPropertyPlanFormProps) {
-  // Projects list
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [projectsError, setProjectsError] = useState<string | null>(null);
 
-  // Selected project
   const [selectedProject, setSelectedProject] = useState<ApiProject | null>(
     null,
   );
 
-  // Payment plans for selected project
   const [paymentPlans, setPaymentPlans] = useState<PaymentPlan[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
   const [plansError, setPlansError] = useState<string | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [customPlanFile, setCustomPlanFile] = useState<File | null>(null);
 
-  // Submit
-  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitStep, setSubmitStep] = useState<SubmitStep>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const isSubmitting = submitStep !== "idle" && submitStep !== "done";
+
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("crm_access_token")
+      : null;
+
+  const authHeaders = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 
   // ── Fetch projects on mount ──────────────────────────────────────────────
   useEffect(() => {
@@ -329,17 +357,9 @@ export function CustomerPropertyPlanForm({
       setProjectsLoading(true);
       setProjectsError(null);
 
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("crm_access_token")
-          : null;
-
       const [data] = await Promise.all([
         fetch(`${apiBaseUrl}/projects?page=1&limit=100`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: authHeaders,
         })
           .then((res) => {
             if (!res.ok)
@@ -355,15 +375,22 @@ export function CustomerPropertyPlanForm({
 
       if (data?.success && Array.isArray(data.data)) {
         setProjects(data.data);
+        if (existingProjectId) {
+          const preSelected = data.data.find(
+            (p: ApiProject) => p.project_id === existingProjectId,
+          );
+          if (preSelected) handleProjectSelect(preSelected);
+        }
       }
 
       setProjectsLoading(false);
     };
 
     fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBaseUrl]);
 
-  // ── When project is selected, fetch its payment plans ───────────────────
+  // ── Fetch payment plans when project selected ────────────────────────────
   const handleProjectSelect = async (project: ApiProject) => {
     setSelectedProject(project);
     setSelectedPlanId(null);
@@ -372,22 +399,18 @@ export function CustomerPropertyPlanForm({
     setPlansError(null);
     setPlansLoading(true);
 
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("crm_access_token")
-        : null;
-
     try {
       const res = await fetch(`${apiBaseUrl}/projects/${project.project_id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: authHeaders,
       });
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const json = await res.json();
       const plans: PaymentPlan[] = json.data?.payment_plans ?? [];
       setPaymentPlans(plans);
+      if (existingPlanId) {
+        const exists = plans.some((p) => p.plan_id === existingPlanId);
+        if (exists) setSelectedPlanId(existingPlanId);
+      }
     } catch (err: unknown) {
       setPlansError(
         err instanceof Error ? err.message : "Failed to load payment plans.",
@@ -397,7 +420,7 @@ export function CustomerPropertyPlanForm({
     }
   };
 
-  // ── Submit ───────────────────────────────────────────────────────────────
+  // ── Submit: create booking → generate schedule → (optional) upload custom plan ──
   const handleSubmit = async () => {
     setSubmitError(null);
 
@@ -406,39 +429,64 @@ export function CustomerPropertyPlanForm({
       return;
     }
 
-    // If custom plan selected but no file uploaded, warn but don't block
     const isCustomPlan = selectedPlanId === CUSTOM_PLAN_ID;
 
-    setSubmitLoading(true);
-
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("crm_access_token")
-        : null;
-
     try {
-      // Step 1: update customer with project (and plan if a real plan is selected)
-      const body: Record<string, unknown> = {
-        plan_id: selectedProject.project_id,
+      // ── Step 1: Create booking ──────────────────────────────────────────
+      setSubmitStep("creating_booking");
+
+      const bookingPayload: Record<string, unknown> = {
+        customer_id: customerId,
+        developer_id: developerId,
+        project_id: selectedProject.project_id,
+        booking_date: new Date().toISOString().split("T")[0], // today as YYYY-MM-DD
       };
+
+      // Only include payment_plan_id when a real plan (not custom) is chosen
       if (selectedPlanId !== null && !isCustomPlan) {
-        body.payment_plan_id = selectedPlanId;
+        bookingPayload.payment_plan_id = selectedPlanId;
       }
 
-      const res = await fetch(`${apiBaseUrl}/customers/${customerId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(body),
+      const bookingRes = await fetch(`${apiBaseUrl}/bookings`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify(bookingPayload),
       });
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Failed to update customer");
+      const bookingJson = await bookingRes.json();
+      if (!bookingRes.ok) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        throw new Error(bookingJson.message || "Failed to create booking");
+      }
 
-      // Step 2: if custom plan with a file, upload via multipart
+      const bookingId: number = bookingJson.data.booking_id;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // ── Step 2: Generate payment schedule ──────────────────────────────
+      setSubmitStep("generating_schedule");
+
+      const scheduleRes = await fetch(
+        `${apiBaseUrl}/payment-actions/schedules/generate/${bookingId}`,
+        {
+          method: "POST",
+          headers: authHeaders,
+        },
+      );
+
+      if (!scheduleRes.ok) {
+        const scheduleJson = await scheduleRes.json().catch(() => ({}));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        throw new Error(
+          scheduleJson.message ||
+            "Booking created but schedule generation failed.",
+        );
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // ── Step 3 (optional): Upload custom plan file ──────────────────────
       if (isCustomPlan && customPlanFile) {
+        setSubmitStep("uploading_plan");
+
         const formData = new FormData();
         formData.append("file", customPlanFile);
         formData.append("customer_id", String(customerId));
@@ -448,9 +496,7 @@ export function CustomerPropertyPlanForm({
           `${apiBaseUrl}/customers/${customerId}/payment-plan/upload`,
           {
             method: "POST",
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: formData,
           },
         );
@@ -458,18 +504,18 @@ export function CustomerPropertyPlanForm({
         if (!uploadRes.ok) {
           const uploadJson = await uploadRes.json().catch(() => ({}));
           throw new Error(
-            uploadJson.message || "Customer saved but file upload failed.",
+            uploadJson.message || "Booking saved but file upload failed.",
           );
         }
       }
 
+      setSubmitStep("done");
       onSuccess();
     } catch (err: unknown) {
       setSubmitError(
         err instanceof Error ? err.message : "Something went wrong",
       );
-    } finally {
-      setSubmitLoading(false);
+      setSubmitStep("idle");
     }
   };
 
@@ -489,6 +535,32 @@ export function CustomerPropertyPlanForm({
       {submitError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {submitError}
+        </div>
+      )}
+
+      {/* ── In-progress status banner ── */}
+      {isSubmitting && (
+        <div className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700 flex items-center gap-2">
+          <svg
+            className="h-4 w-4 animate-spin flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
+            />
+          </svg>
+          {submitLabel(submitStep)}
         </div>
       )}
 
@@ -618,13 +690,11 @@ export function CustomerPropertyPlanForm({
         </CardContent>
       </Card>
 
-      {/* ── Payment Plans (shown after project selection) ── */}
+      {/* ── Payment Plans ── */}
       {selectedProject && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              Select Payment Plan
-            </CardTitle>
+            <CardTitle className="text-base">Select Payment Plan</CardTitle>
             <p className="text-sm text-muted-foreground">
               Payment plans available for{" "}
               <span className="font-medium text-gray-700">
@@ -644,7 +714,6 @@ export function CustomerPropertyPlanForm({
               </div>
             ) : (
               <div className="space-y-3">
-                {/* ── Regular plans (if any) ── */}
                 {paymentPlans.map((plan) => {
                   const isSelected = selectedPlanId === plan.plan_id;
                   return (
@@ -751,7 +820,6 @@ export function CustomerPropertyPlanForm({
                   );
                 })}
 
-                {/* ── Custom Payment Plan (always shown) ── */}
                 <CustomPaymentPlanCard
                   isSelected={selectedPlanId === CUSTOM_PLAN_ID}
                   onSelect={() =>
@@ -770,14 +838,14 @@ export function CustomerPropertyPlanForm({
 
       {/* ── Actions ── */}
       <div className="flex justify-between gap-3 pb-6">
-        <Button variant="ghost" onClick={onSkip} disabled={submitLoading}>
+        <Button variant="ghost" onClick={onSkip} disabled={isSubmitting}>
           Skip for now
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={submitLoading || !selectedProject || projectsLoading}
+          disabled={isSubmitting || !selectedProject || projectsLoading}
         >
-          {submitLoading ? "Saving..." : "Save & Finish"}
+          {isSubmitting ? submitLabel(submitStep) : "Save & Finish"}
         </Button>
       </div>
     </div>

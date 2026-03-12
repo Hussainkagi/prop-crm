@@ -157,9 +157,12 @@ async function fetchProject(id: string): Promise<ProjectDetail> {
 
 async function fetchAllPaymentPlans(): Promise<PaymentPlan[]> {
   const token = getToken();
-  const res = await fetch(`${BASE_URL}/payment-plans?page=1&limit=100`, {
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
+  const res = await fetch(
+    `${BASE_URL}/payment-plans?page=1&limit=100&status=Active`,
+    {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    },
+  );
   if (!res.ok) throw new Error(`Failed to fetch payment plans: ${res.status}`);
   const json = await res.json();
   return json.data as PaymentPlan[];
