@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, User as UserIcon, Shield } from "lucide-react";
+import {
+  Plus,
+  User as UserIcon,
+  Shield,
+  Trash2,
+  RefreshCw,
+  AlertTriangle,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,92 +19,94 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CommonTable from "@/components/organism/commonTable";
-
-// Dummy data for users
-const dummyUsers = [
-  {
-    user_id: "1",
-    username: "john.doe",
-    email_id: "john.doe@company.com",
-    first_name: "John",
-    last_name: "Doe",
-    mobile_number: "+971501234567",
-    employee_code: "EMP001",
-    role_id: 1,
-    role_name: "Admin",
-    department: "IT",
-    designation: "Senior Developer",
-    user_status: "Active",
-    last_login: "2024-02-12 10:30:00",
-    created_at: "2024-01-15 09:00:00",
-  },
-  {
-    user_id: "2",
-    username: "jane.smith",
-    email_id: "jane.smith@company.com",
-    first_name: "Jane",
-    last_name: "Smith",
-    mobile_number: "+971509876543",
-    employee_code: "EMP002",
-    role_id: 2,
-    role_name: "Manager",
-    department: "Sales",
-    designation: "Sales Manager",
-    user_status: "Active",
-    last_login: "2024-02-12 08:15:00",
-    created_at: "2024-01-20 10:00:00",
-  },
-  {
-    user_id: "3",
-    username: "mike.wilson",
-    email_id: "mike.wilson@company.com",
-    first_name: "Mike",
-    last_name: "Wilson",
-    mobile_number: "+971501112233",
-    employee_code: "EMP003",
-    role_id: 3,
-    role_name: "User",
-    department: "Marketing",
-    designation: "Marketing Executive",
-    user_status: "Inactive",
-    last_login: "2024-02-10 14:20:00",
-    created_at: "2024-02-01 11:30:00",
-  },
-];
-
-// Dummy data for roles
-const dummyRoles = [
-  {
-    role_id: "1",
-    role_name: "Admin",
-    role_description: "Full system access with all permissions",
-    role_level: 1,
-    created_at: "2024-01-01 00:00:00",
-    created_by: "system",
-  },
-  {
-    role_id: "2",
-    role_name: "Manager",
-    role_description: "Department level access and management",
-    role_level: 2,
-    created_at: "2024-01-01 00:00:00",
-    created_by: "system",
-  },
-  {
-    role_id: "3",
-    role_name: "User",
-    role_description: "Basic user access with limited permissions",
-    role_level: 3,
-    created_at: "2024-01-01 00:00:00",
-    created_by: "system",
-  },
-];
+import { useToast } from "@/hooks/use-toast";
+import { getAllUsers, deleteUser, type ApiUser } from "@/lib/api/user-api";
+import { showSplashLoader, hideSplashLoader } from "@/utils/splash-loader";
 
 export default function UsersPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("users");
+  const [users, setUsers] = useState<ApiUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Delete dialog state
+  const [userToDelete, setUserToDelete] = useState<ApiUser | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Fetch users
+  const fetchUsers = async (page: number = 1) => {
+    setIsLoading(true);
+    showSplashLoader("Loading users...");
+    try {
+      const response = await getAllUsers(page, 10);
+      setUsers(response.data);
+      setTotalPages(response.pagination.totalPages);
+      setCurrentPage(response.pagination.page);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch users";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setTimeout(() => {
+        hideSplashLoader();
+      }, 500);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Handle delete user
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    showSplashLoader("Deleting user...");
+    try {
+      await deleteUser(userToDelete.user_id);
+      setUsers((prev) =>
+        prev.filter((u) => u.user_id !== userToDelete.user_id),
+      );
+      setUserToDelete(null);
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete user";
+      setDeleteError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      hideSplashLoader();
+      setIsDeleting(false);
+    }
+  };
 
   // User columns configuration
   const userColumns = [
@@ -156,7 +166,7 @@ export default function UsersPage() {
       header: "Status",
       sortable: true,
       filterable: true,
-      render: (row: any) => (
+      render: (row: ApiUser) => (
         <span
           className={`px-2 py-1 text-xs font-medium rounded-full ${
             row.user_status === "Active"
@@ -172,66 +182,25 @@ export default function UsersPage() {
       key: "actions",
       header: "Actions",
       hiddenFromToggle: true,
-      render: (row: any) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push(`/settings/users/edit/${row.user_id}`)}
-        >
-          Edit
-        </Button>
-      ),
-    },
-  ];
-
-  // Role columns configuration
-  const roleColumns = [
-    {
-      key: "role_name",
-      header: "Role Name",
-      sortable: true,
-      searchable: true,
-      filterable: true,
-    },
-    {
-      key: "role_description",
-      header: "Description",
-      sortable: true,
-      searchable: true,
-    },
-    {
-      key: "role_level",
-      header: "Level",
-      sortable: true,
-      filterable: true,
-      render: (row: any) => (
-        <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-          Level {row.role_level}
-        </span>
-      ),
-    },
-    {
-      key: "created_at",
-      header: "Created At",
-      sortable: true,
-    },
-    {
-      key: "created_by",
-      header: "Created By",
-      sortable: true,
-      filterable: true,
-    },
-    {
-      key: "actions",
-      header: "Actions",
-      hiddenFromToggle: true,
-      render: (row: any) => (
+      render: (row: ApiUser) => (
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/settings/users/edit/${row.user_id}`)}
+          >
             Edit
           </Button>
-          <Button variant="outline" size="sm">
-            Permissions
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => {
+              setUserToDelete(row);
+              setDeleteError(null);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
@@ -244,95 +213,115 @@ export default function UsersPage() {
         <div>
           <h2 className="text-2xl font-bold">User Management</h2>
           <p className="text-muted-foreground">
-            Manage user accounts, roles and permissions
+            Manage user accounts and permissions
           </p>
         </div>
-        <Button
-          onClick={() =>
-            router.push(
-              activeTab === "users"
-                ? "/settings/users/create"
-                : "/settings/users/roles/create",
-            )
-          }
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {activeTab === "users" ? "Add User" : "Add Role"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => fetchUsers(currentPage)}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => router.push("/settings/users/create")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+        </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <UserIcon className="h-4 w-4" />
-            Users
-          </TabsTrigger>
-          <TabsTrigger value="roles" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Roles
-          </TabsTrigger>
-        </TabsList>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserIcon className="h-5 w-5" />
+            All Users
+          </CardTitle>
+          <CardDescription>
+            View and manage all user accounts in the system
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <p className="text-muted-foreground">Loading users...</p>
+              </div>
+            </div>
+          ) : (
+            <CommonTable
+              data={users}
+              columns={userColumns}
+              searchPlaceholder="Search users..."
+              showPagination={true}
+              perPage={10}
+              striped={true}
+              hover={true}
+              sortable={true}
+              exportable={true}
+              showColumnToggle={true}
+              emptyMessage="No users found"
+              onRowClick={(row) => console.log("Clicked user:", row.user_id)}
+            />
+          )}
+        </CardContent>
+      </Card>
 
-        <TabsContent value="users" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserIcon className="h-5 w-5" />
-                All Users
-              </CardTitle>
-              <CardDescription>
-                View and manage all user accounts in the system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CommonTable
-                data={dummyUsers}
-                columns={userColumns}
-                searchPlaceholder="Search users..."
-                showPagination={true}
-                perPage={10}
-                striped={true}
-                hover={true}
-                sortable={true}
-                exportable={true}
-                showColumnToggle={true}
-                emptyMessage="No users found"
-                onRowClick={(row) => console.log("Clicked user:", row.user_id)}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={!!userToDelete}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUserToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete User
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-foreground">
+                {userToDelete?.first_name} {userToDelete?.last_name}
+              </span>
+              ? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
 
-        <TabsContent value="roles" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                System Roles
-              </CardTitle>
-              <CardDescription>
-                Manage roles and their permission levels
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CommonTable
-                data={dummyRoles}
-                columns={roleColumns}
-                searchPlaceholder="Search roles..."
-                showPagination={true}
-                perPage={10}
-                striped={true}
-                hover={true}
-                sortable={true}
-                exportable={true}
-                showColumnToggle={true}
-                emptyMessage="No roles found"
-                onRowClick={(row) => console.log("Clicked role:", row.role_id)}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          {deleteError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setUserToDelete(null);
+                setDeleteError(null);
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? "Deleting..." : "Yes, Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
