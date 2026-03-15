@@ -69,9 +69,6 @@ const userFormSchema = z.object({
     .string()
     .min(1, "Designation is required")
     .max(50, "Designation must be at most 50 characters"),
-  developer_id: z
-    .string()
-    .refine((val) => val !== "", "Please select a developer"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -86,7 +83,6 @@ interface UserFormProps {
   isEdit?: boolean;
   onSuccess?: () => void;
   roles?: Array<{ id: number; name: string }>;
-  developers?: Array<{ id: number; name: string }>;
 }
 
 export function UserForm({
@@ -94,7 +90,6 @@ export function UserForm({
   isEdit = false,
   onSuccess,
   roles = [],
-  developers = [],
 }: UserFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -111,7 +106,6 @@ export function UserForm({
       role_id: user?.role_id?.toString() || "",
       department: user?.department || "",
       designation: user?.designation || "",
-      developer_id: user?.developer_id?.toString() || "",
       password: "",
     },
   });
@@ -119,6 +113,17 @@ export function UserForm({
   async function onSubmit(data: UserFormValues) {
     setIsLoading(true);
     try {
+      const developerId = localStorage.getItem("crm_developer_id");
+      if (!developerId) {
+        toast({
+          title: "Error",
+          description: "Developer ID not found. Please log in again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       if (isEdit && user) {
         // Update existing user
         await updateUser(user.user_id, {
@@ -128,7 +133,7 @@ export function UserForm({
           role_id: parseInt(data.role_id),
           department: data.department,
           designation: data.designation,
-          developer_id: parseInt(data.developer_id),
+          developer_id: parseInt(developerId),
         });
 
         toast({
@@ -158,7 +163,7 @@ export function UserForm({
           role_id: parseInt(data.role_id),
           department: data.department,
           designation: data.designation,
-          developer_id: parseInt(data.developer_id),
+          developer_id: parseInt(developerId),
         });
 
         toast({
@@ -341,32 +346,6 @@ export function UserForm({
                         {roles.map((role) => (
                           <SelectItem key={role.id} value={role.id.toString()}>
                             {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Developer */}
-              <FormField
-                control={form.control}
-                name="developer_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Developer</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a developer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {developers.map((dev) => (
-                          <SelectItem key={dev.id} value={dev.id.toString()}>
-                            {dev.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -6,32 +6,21 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserForm } from "@/components/settings/user-form";
 import { useToast } from "@/hooks/use-toast";
-import {
-  getAllRoles,
-  getAllDevelopers,
-  type ApiRole,
-  type ApiDeveloper,
-} from "@/lib/api/user-api";
+import { getAllRoles, type ApiRole } from "@/lib/api/user-api";
 import { showSplashLoader, hideSplashLoader } from "@/utils/splash-loader";
 
 export default function CreateUserPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [roles, setRoles] = useState<Array<{ id: number; name: string }>>([]);
-  const [developers, setDevelopers] = useState<
-    Array<{ id: number; name: string }>
-  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      showSplashLoader("Loading roles and developers...");
+      showSplashLoader("Loading roles...");
       try {
-        const [rolesRes, developersRes] = await Promise.all([
-          getAllRoles(),
-          getAllDevelopers(),
-        ]);
+        const rolesRes = await getAllRoles();
 
         setRoles(
           rolesRes.data.map((role: ApiRole) => ({
@@ -39,16 +28,9 @@ export default function CreateUserPage() {
             name: role.role_name,
           })),
         );
-
-        setDevelopers(
-          developersRes.data.map((dev: ApiDeveloper) => ({
-            id: dev.developer_id,
-            name: dev.company_name,
-          })),
-        );
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "Failed to load data";
+          error instanceof Error ? error.message : "Failed to load roles";
         toast({
           title: "Error",
           description: errorMessage,
@@ -87,7 +69,6 @@ export default function CreateUserPage() {
 
       <UserForm
         roles={roles}
-        developers={developers}
         onSuccess={() => {
           router.push("/settings/users");
         }}

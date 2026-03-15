@@ -11,6 +11,19 @@ function getAccessToken(): string {
   return localStorage.getItem("crm_access_token") || "";
 }
 
+function getDeveloperId(): number | null {
+  const devId = localStorage.getItem("crm_developer_id");
+  return devId ? parseInt(devId) : null;
+}
+
+export function setDeveloperId(developerId: number): void {
+  localStorage.setItem("crm_developer_id", developerId.toString());
+}
+
+export function clearDeveloperId(): void {
+  localStorage.removeItem("crm_developer_id");
+}
+
 function authHeaders() {
   return {
     "Content-Type": "application/json",
@@ -127,9 +140,10 @@ export interface ErrorResponse {
 
 /**
  * Fetch all users with pagination and filters
+ * Automatically filters by logged-in user's developer_id
  * @param page - Page number (default: 1)
  * @param limit - Items per page (default: 10, max: 100)
- * @param filters - Optional filters (status, role_id, department, developer_id, search)
+ * @param filters - Optional filters (status, role_id, department, search)
  */
 export async function getAllUsers(
   page: number = 1,
@@ -138,7 +152,6 @@ export async function getAllUsers(
     status?: string;
     role_id?: number;
     department?: string;
-    developer_id?: number;
     search?: string;
   },
 ): Promise<GetUsersResponse> {
@@ -148,6 +161,12 @@ export async function getAllUsers(
       limit: limit.toString(),
     });
 
+    // Always filter by developer_id of logged-in user
+    const developerId = getDeveloperId();
+    if (developerId) {
+      params.append("developer_id", developerId.toString());
+    }
+
     if (filters?.status) {
       params.append("status", filters.status);
     }
@@ -156,9 +175,6 @@ export async function getAllUsers(
     }
     if (filters?.department) {
       params.append("department", filters.department);
-    }
-    if (filters?.developer_id) {
-      params.append("developer_id", filters.developer_id.toString());
     }
     if (filters?.search) {
       params.append("search", filters.search);

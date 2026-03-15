@@ -7,6 +7,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { setDeveloperId, clearDeveloperId } from "@/lib/api/user-api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -24,6 +25,7 @@ interface User {
   user_status: string;
   last_login: string;
   account_locked: boolean;
+  developer_id: number;
 }
 
 interface AuthContextType {
@@ -89,6 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("crm_access_token", tokens.accessToken);
       localStorage.setItem("crm_refresh_token", tokens.refreshToken);
 
+      // Save developer_id from login response for user isolation
+      if (apiUser.developer_id) {
+        setDeveloperId(apiUser.developer_id);
+      }
+
       return { success: true };
     } catch (error) {
       console.error("Login error:", error);
@@ -105,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("crm_user");
     localStorage.removeItem("crm_access_token");
     localStorage.removeItem("crm_refresh_token");
+    clearDeveloperId();
   };
 
   return (

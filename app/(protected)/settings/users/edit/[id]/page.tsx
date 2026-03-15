@@ -9,10 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   getUserById,
   getAllRoles,
-  getAllDevelopers,
   type ApiUser,
   type ApiRole,
-  type ApiDeveloper,
 } from "@/lib/api/user-api";
 import { showSplashLoader, hideSplashLoader } from "@/utils/splash-loader";
 
@@ -25,9 +23,6 @@ export default function EditUserPage({
   const { toast } = useToast();
   const [user, setUser] = useState<ApiUser | null>(null);
   const [roles, setRoles] = useState<Array<{ id: number; name: string }>>([]);
-  const [developers, setDevelopers] = useState<
-    Array<{ id: number; name: string }>
-  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -40,10 +35,9 @@ export default function EditUserPage({
         setIsLoading(true);
         showSplashLoader("Loading user and form data...");
 
-        const [userRes, rolesRes, developersRes] = await Promise.all([
+        const [userRes, rolesRes] = await Promise.all([
           getUserById(parseInt(id)),
           getAllRoles(),
-          getAllDevelopers(),
         ]);
 
         setUser(userRes.data);
@@ -52,13 +46,6 @@ export default function EditUserPage({
           rolesRes.data.map((role: ApiRole) => ({
             id: role.role_id,
             name: role.role_name,
-          })),
-        );
-
-        setDevelopers(
-          developersRes.data.map((dev: ApiDeveloper) => ({
-            id: dev.developer_id,
-            name: dev.company_name,
           })),
         );
       } catch (error) {
@@ -121,7 +108,6 @@ export default function EditUserPage({
         user={user}
         isEdit={true}
         roles={roles}
-        developers={developers}
         onSuccess={() => {
           router.push("/settings/users");
         }}
