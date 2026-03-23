@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Palette, ChevronRight } from "lucide-react";
+import { User, Palette, ChevronRight, Wallet, Upload } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -23,9 +23,16 @@ const settingsOptions = [
   {
     id: "payments",
     label: "Payment Settings",
-    icon: Palette,
+    icon: Wallet,
     description: "Manage payment configurations and plans",
     path: "/settings/payments",
+  },
+  {
+    id: "file-upload-ai",
+    label: "File Upload AI",
+    icon: Upload,
+    description: "AI file Uploader",
+    path: "/settings/statement",
   },
 ] as const;
 

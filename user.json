@@ -1,0 +1,638 @@
+{
+  "info": {
+    "name": "Real Estate - User Module",
+    "description": "Complete User Module API collection for Real Estate Collection Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token — auto-set after login"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "🔓 Public",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check if server is running"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('token', res.data.tokens.accessToken);",
+                  "    console.log('✅ Token saved automatically');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "login"]
+            },
+            "description": "Login and get JWT token. Token is auto-saved to collection variable."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👤 My Profile",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "profile"]
+            },
+            "description": "Get logged-in user's profile. Response now includes developer_id."
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"mobile_number\": \"9876543210\",\n  \"email_id\": \"john@example.com\",\n  \"department\": \"Collections\",\n  \"designation\": \"Senior Executive\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "profile"]
+            },
+            "description": "Update logged-in user's own profile. Note: developer_id cannot be changed from self-profile update — only an admin can reassign developer."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Admin@123\",\n  \"new_password\": \"NewAdmin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "change-password"]
+            },
+            "description": "Change logged-in user's own password. Requires current password."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🛠️ Admin - User Management",
+      "item": [
+        {
+          "name": "Register New User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"john_doe\",\n  \"password\": \"SecurePass@123\",\n  \"email_id\": \"john@example.com\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"mobile_number\": \"9876543210\",\n  \"employee_code\": \"EMP003\",\n  \"role_id\": 4,\n  \"department\": \"Sales\",\n  \"designation\": \"Sales Executive\",\n  \"developer_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "register"]
+            },
+            "description": "Register a new user. Requires Admin or Manager role.\n\n⚠️ developer_id is REQUIRED. Must be an existing Active developer. Returns 404 if developer not found, 400 if developer is Inactive/Blacklisted."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page (max 100)"
+                },
+                {
+                  "key": "status",
+                  "value": "Active",
+                  "description": "Filter by status (Active/Inactive)",
+                  "disabled": true
+                },
+                {
+                  "key": "role_id",
+                  "value": "1",
+                  "description": "Filter by role ID",
+                  "disabled": true
+                },
+                {
+                  "key": "department",
+                  "value": "Sales",
+                  "description": "Filter by department",
+                  "disabled": true
+                },
+                {
+                  "key": "developer_id",
+                  "value": "1",
+                  "description": "Filter by developer ID — returns all users belonging to that developer",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "john",
+                  "description": "Search by name, username or email",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all users with pagination and filters. Requires Admin or Manager role.\n\nNew filter: developer_id — narrows results to users belonging to a specific developer."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users - Filter by Developer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users?page=1&limit=10&developer_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                {
+                  "key": "developer_id",
+                  "value": "1",
+                  "description": "Filter users by developer"
+                }
+              ]
+            },
+            "description": "Get all users belonging to developer ID 1."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "1"]
+            },
+            "description": "Get a specific user by ID. Requires Admin or Manager role. Response now includes developer_id."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Updated\",\n  \"mobile_number\": \"9876543211\",\n  \"role_id\": 3,\n  \"department\": \"Collections\",\n  \"designation\": \"Team Lead\",\n  \"user_status\": \"Active\",\n  \"developer_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "2"]
+            },
+            "description": "Update any user by ID. Requires Admin or Manager role.\n\ndeveloper_id can be changed here to reassign a user to a different developer. The new developer must be Active."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/3",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "3"]
+            },
+            "description": "Soft delete a user (sets status to Inactive). Requires Admin role only."
+          },
+          "response": []
+        },
+        {
+          "name": "Unlock Account",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/3/unlock",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "3", "unlock"]
+            },
+            "description": "Unlock a locked user account. Requires Admin or Manager role."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"NewSecure@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/3/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "3", "reset-password"]
+            },
+            "description": "Admin resets any user's password without needing current password. Requires Admin role only."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🧪 Test Scenarios",
+      "item": [
+        {
+          "name": "Login - Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"wrongpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "login"]
+            },
+            "description": "Test failed login — should return 401 with remaining attempts"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('token', res.data.tokens.accessToken);",
+                  "    console.log('✅ Manager token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager\",\n  \"password\": \"Manager@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "login"]
+            },
+            "description": "Login as manager to test manager-level permissions"
+          },
+          "response": []
+        },
+        {
+          "name": "Register - Missing developer_id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"no_dev_user\",\n  \"password\": \"SecurePass@123\",\n  \"email_id\": \"nodev@example.com\",\n  \"first_name\": \"No\",\n  \"last_name\": \"Dev\",\n  \"role_id\": 4\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "register"]
+            },
+            "description": "Should return 400 Validation Error — developer_id is required for all users"
+          },
+          "response": []
+        },
+        {
+          "name": "Register - Invalid developer_id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"bad_dev_user\",\n  \"password\": \"SecurePass@123\",\n  \"email_id\": \"baddev@example.com\",\n  \"first_name\": \"Bad\",\n  \"last_name\": \"Dev\",\n  \"role_id\": 4,\n  \"developer_id\": 99999\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "register"]
+            },
+            "description": "Should return 404 Not Found — developer with ID 99999 does not exist"
+          },
+          "response": []
+        },
+        {
+          "name": "Register - Inactive Developer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"inactive_dev_user\",\n  \"password\": \"SecurePass@123\",\n  \"email_id\": \"inactivedev@example.com\",\n  \"first_name\": \"Inactive\",\n  \"last_name\": \"Dev\",\n  \"role_id\": 4,\n  \"developer_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "register"]
+            },
+            "description": "Should return 400 Validation Error — cannot assign user to an Inactive or Blacklisted developer. Update developer_id to point to an actual Inactive/Blacklisted developer in your DB."
+          },
+          "response": []
+        },
+        {
+          "name": "Register - Duplicate Username",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"SecurePass@123\",\n  \"email_id\": \"newemail@example.com\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"role_id\": 4,\n  \"developer_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "register"]
+            },
+            "description": "Should return 409 Conflict — username already exists"
+          },
+          "response": []
+        },
+        {
+          "name": "Register - Weak Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newuser123\",\n  \"password\": \"weak\",\n  \"email_id\": \"newuser@example.com\",\n  \"first_name\": \"New\",\n  \"last_name\": \"User\",\n  \"role_id\": 4,\n  \"developer_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "register"]
+            },
+            "description": "Should return 400 Validation Error — password too weak"
+          },
+          "response": []
+        },
+        {
+          "name": "Access Without Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "profile"]
+            },
+            "description": "Should return 401 Unauthorized — no token provided"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users - With Search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users?page=1&limit=5&search=admin&status=Active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "5" },
+                { "key": "search", "value": "admin" },
+                { "key": "status", "value": "Active" }
+              ]
+            },
+            "description": "Test pagination and search filters"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

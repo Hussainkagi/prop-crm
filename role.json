@@ -1,0 +1,183 @@
+{
+  "info": {
+    "name": "Role Management",
+    "description": "Role CRUD operations and management endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Role",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role_name\": \"Senior Manager\",\n  \"role_description\": \"Senior management level role\",\n  \"role_level\": 3\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/roles",
+          "host": ["{{base_url}}"],
+          "path": ["api", "roles"]
+        }
+      }
+    },
+    {
+      "name": "Get All Roles",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/roles?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "roles"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Role By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/roles/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "roles", "1"]
+        }
+      }
+    },
+    {
+      "name": "Get Role By Name",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/roles/name/Admin",
+          "host": ["{{base_url}}"],
+          "path": ["api", "roles", "name", "Admin"]
+        }
+      }
+    },
+    {
+      "name": "Get All Roles With User Counts",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/roles/with-user-counts",
+          "host": ["{{base_url}}"],
+          "path": ["api", "roles", "with-user-counts"]
+        }
+      }
+    },
+    {
+      "name": "Get Role With User Count",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/roles/1/with-user-count",
+          "host": ["{{base_url}}"],
+          "path": ["api", "roles", "1", "with-user-count"]
+        }
+      }
+    },
+    {
+      "name": "Update Role",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role_name\": \"Senior Manager\",\n  \"role_description\": \"Updated senior management level role\",\n  \"role_level\": 2\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/roles/7",
+          "host": ["{{base_url}}"],
+          "path": ["api", "roles", "7"]
+        }
+      }
+    },
+    {
+      "name": "Delete Role",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/roles/7",
+          "host": ["{{base_url}}"],
+          "path": ["api", "roles", "7"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
