@@ -309,9 +309,7 @@ export function BankStatement() {
               />
             </svg>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Analyzing statement with Claude AI…
-          </p>
+          <p className="text-sm text-muted-foreground">Analyzing statement…</p>
         </div>
       )}
 
