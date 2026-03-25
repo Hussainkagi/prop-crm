@@ -141,6 +141,7 @@ export function BankStatement() {
   const [data, setData] = useState<StatementData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const analyzeFile = async (f: File) => {
@@ -206,6 +207,16 @@ export function BankStatement() {
 
   const fmt = (n: number) =>
     n?.toLocaleString("en-US", { minimumFractionDigits: 2 });
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Failed to copy JSON to clipboard");
+    }
+  };
 
   const scoreArc = (score: number) => {
     const pct = Math.min(Math.max(score, 0), 100) / 100;
@@ -316,6 +327,36 @@ export function BankStatement() {
       {/* ── Results ── */}
       {data && (
         <div className="space-y-4">
+          {/* Header with Copy Button */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-foreground">
+              Statement Analysis
+            </h3>
+            <button
+              onClick={copyToClipboard}
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                copied
+                  ? "bg-green-100 text-green-700"
+                  : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+              }`}
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+              {copied ? "Copied!" : "Copy JSON"}
+            </button>
+          </div>
+
           {/* Account Info */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {[
@@ -391,7 +432,7 @@ export function BankStatement() {
                     className="shrink-0"
                   >
                     <path
-                      d="M10,65 A50,50 0 0,1 110,65"
+                      d="M10,65 A50,50 0 0,1 1  10,65"
                       fill="none"
                       stroke="hsl(var(--muted))"
                       strokeWidth={10}

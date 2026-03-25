@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankStatement } from "@/components/settings/bankstatement";
-import { StatementHistory } from "@/components/settings/statement-history";
+import { CreditScore } from "@/components/settings/creditscore";
 
 export default function StatementPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -29,7 +29,7 @@ export default function StatementPage() {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
-            <StatementHistory />
+            <CreditScore />
           </TabsContent>
         </Tabs>
       </div>
