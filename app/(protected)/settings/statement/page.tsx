@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankStatement } from "@/components/settings/bankstatement";
 import { CreditScore } from "@/components/settings/creditscore";
+import { BankStatementRecords } from "@/components/settings/bankstatementrecords";
 
 export default function StatementPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -20,8 +21,9 @@ export default function StatementPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
-            <TabsTrigger value="overview">Bank Statment</TabsTrigger>
+            <TabsTrigger value="overview">Bank Statement</TabsTrigger>
             <TabsTrigger value="history">User Credit Score</TabsTrigger>
+            <TabsTrigger value="records">Bank Statement Records</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -30,6 +32,10 @@ export default function StatementPage() {
 
           <TabsContent value="history" className="space-y-4">
             <CreditScore />
+          </TabsContent>
+
+          <TabsContent value="records" className="space-y-4">
+            <BankStatementRecords />
           </TabsContent>
         </Tabs>
       </div>

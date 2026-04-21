@@ -1,0 +1,2240 @@
+{
+  "info": {
+    "_postman_id": "aecb-collection-2026",
+    "name": "AECB Estate Backend API",
+    "description": "Complete API documentation for all 21 AECB (Amlak Economic Credit Bureau) tables",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Personal Details",
+      "item": [
+        {
+          "name": "Create Personal Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"First_Name\": \"Ahmed\",\n  \"Last_Name\": \"Ali\",\n  \"Date_of_Birth\": \"1990-01-15\",\n  \"Gender\": \"M\",\n  \"Nationality\": \"SA\",\n  \"Email\": \"ahmed@example.com\",\n  \"Phone\": \"0501234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/personal-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "personal-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Personal Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/personal-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "personal-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Personal Details by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/personal-details/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "personal-details",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Personal Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/personal-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "personal-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Personal Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Email\": \"newemail@example.com\",\n  \"Phone\": \"0509999999\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/personal-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "personal-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Personal Details",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/personal-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "personal-details", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Contact Details",
+      "item": [
+        {
+          "name": "Create Contact Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Mobile_Number\": \"0501234567\",\n  \"Alternate_Mobile\": \"0509876543\",\n  \"Email\": \"ahmed@example.com\",\n  \"Office_Phone\": \"0112345678\",\n  \"Contact_Type\": \"Personal\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/contact-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "contact-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Contact Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/contact-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "contact-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Contact Details by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/contact-details/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "contact-details",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Contact Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/contact-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "contact-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Contact Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Mobile_Number\": \"0505555555\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/contact-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "contact-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Contact Details",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/contact-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "contact-details", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Address Details",
+      "item": [
+        {
+          "name": "Create Address Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Street_Address\": \"123 Main Street\",\n  \"City\": \"Riyadh\",\n  \"Region\": \"Riyadh\",\n  \"Postal_Code\": \"12345\",\n  \"Country\": \"SA\",\n  \"Address_Type\": \"Residential\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/address-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "address-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Address Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/address-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "address-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Address Details by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/address-details/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "address-details",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Address Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/address-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "address-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Address Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"City\": \"Jeddah\",\n  \"Region\": \"Makkah\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/address-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "address-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Address Details",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/address-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "address-details", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Per Ident Details",
+      "item": [
+        {
+          "name": "Create Per Ident Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"ID_Type\": \"National ID\",\n  \"ID_Number\": \"1234567890\",\n  \"ID_Issue_Date\": \"2015-01-01\",\n  \"ID_Expiry_Date\": \"2025-01-01\",\n  \"ID_Issue_Authority\": \"Ministry of Interior\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/per-ident-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "per-ident-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Per Ident Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/per-ident-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "per-ident-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Per Ident Details by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/per-ident-details/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "per-ident-details",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Per Ident Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/per-ident-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "per-ident-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Per Ident Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ID_Expiry_Date\": \"2026-01-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/per-ident-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "per-ident-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Per Ident Details",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/per-ident-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "per-ident-details", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employment Details",
+      "item": [
+        {
+          "name": "Create Employment Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Employment_Status\": \"Employed\",\n  \"Employer_Name\": \"ABC Company\",\n  \"Job_Title\": \"Software Engineer\",\n  \"Joining_Date\": \"2020-01-15\",\n  \"Industry\": \"Technology\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/employment-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "employment-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employment Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/employment-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "employment-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employment Details by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/employment-details/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "employment-details",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Employment Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/employment-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "employment-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employment Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Job_Title\": \"Senior Software Engineer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/employment-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "employment-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Employment Details",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/employment-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "employment-details", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Salary Credits",
+      "item": [
+        {
+          "name": "Create Salary Credits",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Salary_Amount\": \"50000\",\n  \"Payment_Frequency\": \"Monthly\",\n  \"Account_Number\": \"123456789\",\n  \"Bank_Name\": \"ABC Bank\",\n  \"Last_Credit_Date\": \"2026-04-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-credits",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-credits"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Salary Credits by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-credits/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-credits", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Salary Credits by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-credits/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-credits", "transaction", "TXN001"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Salary Credits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-credits",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-credits"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Salary Credits",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Salary_Amount\": \"55000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-credits/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-credits", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Salary Credits",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-credits/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-credits", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Salary History",
+      "item": [
+        {
+          "name": "Create Salary History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Salary_Amount\": \"50000\",\n  \"Credit_Date\": \"2026-04-01\",\n  \"Status\": \"Received\",\n  \"Bank_Reference\": \"REF123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Salary History by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Salary History by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-history/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-history", "transaction", "TXN001"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Salary History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Salary History",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Status\": \"Confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Salary History",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/salary-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "salary-history", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Total Credit Summary",
+      "item": [
+        {
+          "name": "Create Total Credit Summary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Total_Credit_Limit\": \"500000\",\n  \"Total_Used\": \"150000\",\n  \"Available_Credit\": \"350000\",\n  \"Payment_Status\": \"Good\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/total-credit-summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "total-credit-summary"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Total Credit Summary by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/total-credit-summary/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "total-credit-summary", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Total Credit Summary by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/total-credit-summary/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "total-credit-summary",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Total Credit Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/total-credit-summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "total-credit-summary"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Total Credit Summary",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Total_Used\": \"200000\",\n  \"Available_Credit\": \"300000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/total-credit-summary/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "total-credit-summary", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Total Credit Summary",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/total-credit-summary/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "total-credit-summary", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "OV Credit Facilities",
+      "item": [
+        {
+          "name": "Create OV Credit Facilities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Limit_Amount\": \"100000\",\n  \"Used_Amount\": \"30000\",\n  \"Bank_Name\": \"ABC Bank\",\n  \"Facility_Type\": \"OV\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/ov-credit-facilities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "ov-credit-facilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get OV Credit Facilities by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/ov-credit-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "ov-credit-facilities", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get OV Credit Facilities by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/ov-credit-facilities/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "ov-credit-facilities",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All OV Credit Facilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/ov-credit-facilities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "ov-credit-facilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update OV Credit Facilities",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Used_Amount\": \"40000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/ov-credit-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "ov-credit-facilities", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete OV Credit Facilities",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/ov-credit-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "ov-credit-facilities", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Return Cheque",
+      "item": [
+        {
+          "name": "Create Return Cheque",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Cheque_Number\": \"CHQ123456\",\n  \"Amount\": \"50000\",\n  \"Bank_Name\": \"ABC Bank\",\n  \"Return_Reason\": \"NSF\",\n  \"Return_Date\": \"2026-03-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/return-cheque",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "return-cheque"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Return Cheque by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/return-cheque/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "return-cheque", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Return Cheque by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/return-cheque/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "return-cheque", "transaction", "TXN001"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Return Cheque",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/return-cheque",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "return-cheque"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Return Cheque",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Return_Reason\": \"Account Closed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/return-cheque/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "return-cheque", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Return Cheque",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/return-cheque/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "return-cheque", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Company Links",
+      "item": [
+        {
+          "name": "Create Company Links",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Company_Name\": \"ABC Company\",\n  \"Company_Type\": \"Employer\",\n  \"Relationship\": \"Employee\",\n  \"Link_Status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/company-links",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "company-links"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Links by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/company-links/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "company-links", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Links by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/company-links/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "company-links", "transaction", "TXN001"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Company Links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/company-links",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "company-links"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Company Links",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Link_Status\": \"Inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/company-links/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "company-links", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Company Links",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/company-links/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "company-links", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credit Telco App",
+      "item": [
+        {
+          "name": "Create Credit Telco App",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Telco_Company\": \"STC\",\n  \"Account_Number\": \"0501234567\",\n  \"Credit_Limit\": \"5000\",\n  \"Used_Amount\": \"1500\",\n  \"Payment_Status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-telco-app",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-telco-app"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Telco App by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-telco-app/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-telco-app", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Telco App by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-telco-app/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "credit-telco-app",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Credit Telco App",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-telco-app",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-telco-app"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Credit Telco App",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Used_Amount\": \"2000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-telco-app/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-telco-app", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Credit Telco App",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-telco-app/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-telco-app", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credit Facilities",
+      "item": [
+        {
+          "name": "Create Credit Facilities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Facility_Type\": \"Personal Loan\",\n  \"Bank_Name\": \"ABC Bank\",\n  \"Sanctioned_Amount\": \"200000\",\n  \"Outstanding_Amount\": \"150000\",\n  \"Status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Facilities by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Facilities by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "credit-facilities",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Credit Facilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Credit Facilities",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Outstanding_Amount\": \"120000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Credit Facilities",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credit Facilities Details",
+      "item": [
+        {
+          "name": "Create Credit Facilities Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Facility_Number\": \"FAC123456\",\n  \"Bank_Name\": \"ABC Bank\",\n  \"Sanctioned_Amount\": \"200000\",\n  \"Drawn_Amount\": \"150000\",\n  \"Interest_Rate\": \"5.5\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Facilities Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Facilities Details by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-details/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "credit-facilities-details",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Credit Facilities Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Credit Facilities Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Drawn_Amount\": \"180000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Credit Facilities Details",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-details", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credit Facilities History",
+      "item": [
+        {
+          "name": "Create Credit Facilities History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Facility_Number\": \"FAC123456\",\n  \"Status\": \"Active\",\n  \"Status_Date\": \"2026-04-01\",\n  \"Status_Reason\": \"Regular Payment\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Facilities History by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Facilities History by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-history/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "credit-facilities-history",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Credit Facilities History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Credit Facilities History",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Status\": \"Closed\",\n  \"Status_Reason\": \"Loan Repaid\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Credit Facilities History",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-facilities-history", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credit Card Facilities",
+      "item": [
+        {
+          "name": "Create Credit Card Facilities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Card_Number\": \"XXXX-XXXX-XXXX-1234\",\n  \"Bank_Name\": \"ABC Bank\",\n  \"Credit_Limit\": \"100000\",\n  \"Outstanding_Balance\": \"25000\",\n  \"Card_Status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Card Facilities by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Card Facilities by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "credit-card-facilities",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Credit Card Facilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Credit Card Facilities",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Outstanding_Balance\": \"15000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Credit Card Facilities",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credit Card Facilities Details",
+      "item": [
+        {
+          "name": "Create Credit Card Facilities Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Card_Number\": \"XXXX-XXXX-XXXX-1234\",\n  \"Bank_Name\": \"ABC Bank\",\n  \"Issue_Date\": \"2023-01-01\",\n  \"Expiry_Date\": \"2026-12-31\",\n  \"Card_Type\": \"Visa\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Card Facilities Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Card Facilities Details by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-details/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "credit-card-facilities-details",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Credit Card Facilities Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Credit Card Facilities Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Card_Type\": \"MasterCard\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Credit Card Facilities Details",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-details", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credit Card Facilities History",
+      "item": [
+        {
+          "name": "Create Credit Card Facilities History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Card_Number\": \"XXXX-XXXX-XXXX-1234\",\n  \"Status\": \"Active\",\n  \"Status_Date\": \"2026-04-01\",\n  \"Transaction_Amount\": \"5000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Card Facilities History by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credit Card Facilities History by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-history/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "credit-card-facilities-history",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Credit Card Facilities History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Credit Card Facilities History",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Status\": \"Closed\",\n  \"Transaction_Amount\": \"0\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Credit Card Facilities History",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/credit-card-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "credit-card-facilities-history", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Telecom Facilities",
+      "item": [
+        {
+          "name": "Create Telecom Facilities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Telecom_Company\": \"STC\",\n  \"Account_Number\": \"0501234567\",\n  \"Credit_Limit\": \"10000\",\n  \"Outstanding_Amount\": \"3000\",\n  \"Account_Status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Telecom Facilities by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Telecom Facilities by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "telecom-facilities",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Telecom Facilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Telecom Facilities",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Outstanding_Amount\": \"2000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Telecom Facilities",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Telecom Facilities Details",
+      "item": [
+        {
+          "name": "Create Telecom Facilities Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Account_Number\": \"0501234567\",\n  \"Telecom_Company\": \"STC\",\n  \"Activation_Date\": \"2020-01-01\",\n  \"Package_Type\": \"Postpaid\",\n  \"Monthly_Fee\": \"250\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Telecom Facilities Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Telecom Facilities Details by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-details/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "telecom-facilities-details",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Telecom Facilities Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-details"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Telecom Facilities Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Monthly_Fee\": \"300\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-details", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Telecom Facilities Details",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-details/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-details", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Telecom Facilities History",
+      "item": [
+        {
+          "name": "Create Telecom Facilities History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Transaction_Number\": \"TXN001\",\n  \"Account_Number\": \"0501234567\",\n  \"Status\": \"Active\",\n  \"Status_Date\": \"2026-04-01\",\n  \"Last_Payment_Date\": \"2026-03-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Telecom Facilities History by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Telecom Facilities History by Transaction Number",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-history/transaction/TXN001",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "aecb",
+                "telecom-facilities-history",
+                "transaction",
+                "TXN001"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Telecom Facilities History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Telecom Facilities History",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Status\": \"Suspended\",\n  \"Last_Payment_Date\": \"2026-02-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Telecom Facilities History",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/aecb/telecom-facilities-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "aecb", "telecom-facilities-history", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}
