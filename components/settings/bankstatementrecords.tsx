@@ -96,6 +96,108 @@ const fmtDate = (d: string) => {
   }
 };
 
+const downloadDebitsByMonth = (
+  transactions: Transaction[],
+  txnNumber: number,
+) => {
+  // Dynamically load SheetJS
+  const script = document.createElement("script");
+  script.src =
+    "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  script.onload = () => {
+    const XLSX = (window as any).XLSX;
+
+    // Group debit transactions by month
+    const monthMap: Record<
+      string,
+      { transactions: Transaction[]; total: number }
+    > = {};
+
+    transactions
+      .filter((tx) => Number(tx.debit_amount) > 0)
+      .forEach((tx) => {
+        const d = new Date(tx.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const label = d.toLocaleDateString("en-GB", {
+          month: "long",
+          year: "numeric",
+        });
+        if (!monthMap[key]) monthMap[key] = { transactions: [], total: 0 };
+        monthMap[key].transactions.push(tx);
+        monthMap[key].total += Number(tx.debit_amount);
+      });
+
+    const wb = XLSX.utils.book_new();
+
+    // One sheet per month
+    Object.entries(monthMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .forEach(([key, { transactions: txns, total }]) => {
+        const d = new Date(key + "-01");
+        const sheetName = d.toLocaleDateString("en-GB", {
+          month: "short",
+          year: "numeric",
+        });
+
+        const rows = [
+          [
+            "#",
+            "Date",
+            "Bank Ref",
+            "Customer Ref",
+            "Description",
+            "Debit Amount",
+            "Running Balance",
+          ],
+          ...txns.map((tx) => [
+            tx.txn_serial_no,
+            fmtDate(tx.date),
+            tx.bank_reference_no || "",
+            tx.customer_reference_no || "",
+            tx.description,
+            Number(tx.debit_amount),
+            Number(tx.running_balance),
+          ]),
+          [],
+          ["", "", "", "", "Monthly Total Debits:", total, ""],
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws["!cols"] = [
+          { wch: 5 },
+          { wch: 14 },
+          { wch: 14 },
+          { wch: 16 },
+          { wch: 40 },
+          { wch: 16 },
+          { wch: 16 },
+        ];
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+
+    // Summary sheet
+    const summaryRows = [
+      ["Month", "No. of Debit Transactions", "Total Debit Amount"],
+      ...Object.entries(monthMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, { transactions: txns, total }]) => {
+          const d = new Date(key + "-01");
+          return [
+            d.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
+            txns.length,
+            total,
+          ];
+        }),
+    ];
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
+    summaryWs["!cols"] = [{ wch: 20 }, { wch: 26 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+
+    XLSX.writeFile(wb, `debit-transactions-txn${txnNumber}.xlsx`);
+  };
+  document.head.appendChild(script);
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -483,9 +585,32 @@ function RecordDetail({
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Transaction Rows
                     </p>
-                    <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                      {transactions.length} rows
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                        {transactions.length} rows
+                      </span>
+                      <button
+                        onClick={() =>
+                          downloadDebitsByMonth(transactions, txnNumber)
+                        }
+                        className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 active:bg-green-800"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                          />
+                        </svg>
+                        Export Debits
+                      </button>
+                    </div>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
