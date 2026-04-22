@@ -5,9 +5,9 @@ import { useState, useEffect, useCallback } from "react";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface CustAccInfo {
+interface CustAccInfoRaw {
   id: number;
   transaction_number: number;
   customerid: string;
@@ -26,33 +26,42 @@ interface CustAccInfo {
   created_at: string;
 }
 
-interface Balance {
-  id: number;
-  transaction_number: number;
-  start_date: string;
-  end_date: string;
-  opening_balance: string;
-  closing_available_balance: string;
-  ledger_balance: string;
-  unclear_balance: string;
-  average_balance: string;
-  average_debit_balance: string;
-  average_credit_balance: string;
-  created_at: string;
-}
-
-interface Summary {
-  id: number;
-  transaction_number: number;
-  total_no_of_debits: number;
-  total_no_of_credits: number;
-  total_debit_amount: string;
-  total_credit_amount: string;
-  debit_credit_filter: string;
-  amount_range: string;
-  min: string;
-  max: string;
-  created_at: string;
+interface CustomerResult {
+  customerId: string;
+  custAccInfo: {
+    id: number;
+    transaction_number: number;
+    customerid: string;
+    bank_name: string;
+    account_no: string;
+    iban: string;
+    account_name: string;
+    address: string;
+    po_box: number;
+    building: string;
+    area: string;
+    city: string;
+    postal_code: number;
+    created_date: string;
+    created_by: string;
+    created_at: string;
+  };
+  balances: {
+    opening_balance: number;
+    closing_available_balance: number;
+    ledger_balance: number;
+    unclear_balance: number;
+    average_balance: number;
+    average_debit_balance: number;
+    average_credit_balance: number;
+  };
+  summary: {
+    total_no_of_debits: number;
+    total_no_of_credits: number;
+    total_debit_amount: number;
+    total_credit_amount: number;
+  };
+  transactions: Transaction[];
 }
 
 interface Transaction {
@@ -69,17 +78,10 @@ interface Transaction {
   credit_amount: string;
   running_balance: string;
   created_at: string;
+  customerid: string;
 }
 
-interface GroupedRecord {
-  transaction_number: number;
-  account_name: string;
-  bank_name: string;
-  account_no: string;
-  created_at: string;
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (n: string | number) =>
   Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
@@ -98,108 +100,166 @@ const fmtDate = (d: string) => {
 
 const downloadDebitsByMonth = (
   transactions: Transaction[],
-  txnNumber: number,
+  customerId: string,
+  accountName: string,
+  bankName: string,
 ) => {
-  // Dynamically load SheetJS
+  const getMonthKey = (dateStr: string) => {
+    const d = new Date(new Date(dateStr).getTime() + 4 * 60 * 60 * 1000);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  };
+
   const script = document.createElement("script");
   script.src =
     "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
   script.onload = () => {
     const XLSX = (window as any).XLSX;
 
-    // Group debit transactions by month
-    const monthMap: Record<
-      string,
-      { transactions: Transaction[]; total: number }
-    > = {};
+    const credits = transactions.filter((tx) => Number(tx.credit_amount) !== 0);
 
-    transactions
-      .filter((tx) => Number(tx.debit_amount) > 0)
+    // Build sorted unique month keys
+    const monthSet = new Set<string>();
+    credits.forEach((tx) => monthSet.add(getMonthKey(tx.date)));
+    const monthKeys = Array.from(monthSet).sort();
+
+    const monthLabel = (mk: string) => {
+      const d = new Date(mk + "-01");
+      const mon = d.toLocaleDateString("en-GB", { month: "short" });
+      const yr = String(d.getFullYear()).slice(2);
+      return `${mon}'${yr}`;
+    };
+    const monthLabels = monthKeys.map(monthLabel);
+
+    // Group debits by month, sorted by serial within each month
+    const byMonth: Record<string, number[]> = {};
+    monthKeys.forEach((mk) => {
+      byMonth[mk] = [];
+    });
+    credits
+      .slice()
+      .sort((a, b) => a.txn_serial_no - b.txn_serial_no)
       .forEach((tx) => {
-        const d = new Date(tx.date);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        const label = d.toLocaleDateString("en-GB", {
-          month: "long",
-          year: "numeric",
-        });
-        if (!monthMap[key]) monthMap[key] = { transactions: [], total: 0 };
-        monthMap[key].transactions.push(tx);
-        monthMap[key].total += Number(tx.debit_amount);
+        byMonth[getMonthKey(tx.date)].push(Number(tx.credit_amount));
       });
+
+    const monthTotals: Record<string, number> = {};
+    monthKeys.forEach((mk) => {
+      monthTotals[mk] = byMonth[mk].reduce((s, v) => s + v, 0);
+    });
+
+    // Max rows needed = longest month column
+    const maxRows = Math.max(...monthKeys.map((mk) => byMonth[mk].length));
+
+    const NC = monthKeys.length;
+    const COL_OFFSET = 2;
+
+    // Build AOA: rows 0-1 = title, row 2 = average, row 3 = total, row 4 = month headers, rows 5+ = data
+    const aoa: any[][] = [
+      [null, null, accountName, ...Array(NC - 1).fill(null)],
+      [null, null, bankName, ...Array(NC - 1).fill(null)],
+      ["Average", "AVERAGE", ...monthKeys.map((mk) => monthTotals[mk] / 30)],
+      ["Total", "TOTAL", ...monthKeys.map((mk) => monthTotals[mk])],
+      [null, null, ...monthLabels],
+    ];
+
+    // Data rows: each row i gets byMonth[mk][i] for each month column
+    for (let i = 0; i < maxRows; i++) {
+      aoa.push([null, null, ...monthKeys.map((mk) => byMonth[mk][i] ?? null)]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    ws["!cols"] = [
+      { wch: 10 },
+      { wch: 10 },
+      ...monthKeys.map(() => ({ wch: 16 })),
+    ];
+
+    ws["!merges"] = [
+      { s: { r: 0, c: COL_OFFSET }, e: { r: 0, c: COL_OFFSET + NC - 1 } },
+      { s: { r: 1, c: COL_OFFSET }, e: { r: 1, c: COL_OFFSET + NC - 1 } },
+    ];
+
+    const setStyle = (ref: string, style: any) => {
+      if (!ws[ref]) ws[ref] = { t: "z", v: null };
+      ws[ref].s = style;
+    };
+
+    const BLUE = "4472C4";
+    const GREEN = "70AD47";
+    const AMBER = "FFC000";
+    const WHITE = "FFFFFF";
+    const BLACK = "000000";
+
+    const titleStyle = {
+      font: { bold: true, sz: 12, color: { rgb: WHITE } },
+      fill: { patternType: "solid", fgColor: { rgb: BLUE } },
+      alignment: { horizontal: "center", vertical: "center" },
+    };
+    const avgLabelStyle = {
+      font: { bold: true, color: { rgb: BLACK } },
+      fill: { patternType: "solid", fgColor: { rgb: GREEN } },
+      alignment: { horizontal: "left" },
+    };
+    const avgNumStyle = {
+      font: { bold: true, color: { rgb: BLACK } },
+      fill: { patternType: "solid", fgColor: { rgb: GREEN } },
+      alignment: { horizontal: "right" },
+      numFmt: "#,##0.00",
+    };
+    const totalLabelStyle = {
+      font: { bold: true, color: { rgb: BLACK } },
+      fill: { patternType: "solid", fgColor: { rgb: AMBER } },
+      alignment: { horizontal: "left" },
+    };
+    const totalNumStyle = {
+      font: { bold: true, color: { rgb: BLACK } },
+      fill: { patternType: "solid", fgColor: { rgb: AMBER } },
+      alignment: { horizontal: "right" },
+      numFmt: "#,##0.00",
+    };
+    const monthHeaderStyle = {
+      font: { bold: true, color: { rgb: WHITE } },
+      fill: { patternType: "solid", fgColor: { rgb: BLUE } },
+      alignment: { horizontal: "center" },
+    };
+    const dataNumStyle = {
+      numFmt: "#,##0.00",
+      alignment: { horizontal: "right" },
+    };
+
+    for (let c = 0; c < NC + COL_OFFSET; c++) {
+      setStyle(XLSX.utils.encode_cell({ r: 0, c }), titleStyle);
+      setStyle(XLSX.utils.encode_cell({ r: 1, c }), titleStyle);
+    }
+    setStyle(XLSX.utils.encode_cell({ r: 2, c: 0 }), avgLabelStyle);
+    setStyle(XLSX.utils.encode_cell({ r: 2, c: 1 }), avgLabelStyle);
+    for (let c = COL_OFFSET; c < NC + COL_OFFSET; c++) {
+      setStyle(XLSX.utils.encode_cell({ r: 2, c }), avgNumStyle);
+    }
+    setStyle(XLSX.utils.encode_cell({ r: 3, c: 0 }), totalLabelStyle);
+    setStyle(XLSX.utils.encode_cell({ r: 3, c: 1 }), totalLabelStyle);
+    for (let c = COL_OFFSET; c < NC + COL_OFFSET; c++) {
+      setStyle(XLSX.utils.encode_cell({ r: 3, c }), totalNumStyle);
+    }
+    for (let c = 0; c < NC + COL_OFFSET; c++) {
+      setStyle(XLSX.utils.encode_cell({ r: 4, c }), monthHeaderStyle);
+    }
+    for (let r = 5; r < aoa.length; r++) {
+      for (let c = COL_OFFSET; c < NC + COL_OFFSET; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (ws[ref] && ws[ref].v != null) {
+          ws[ref].s = dataNumStyle;
+        }
+      }
+    }
 
     const wb = XLSX.utils.book_new();
-
-    // One sheet per month
-    Object.entries(monthMap)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .forEach(([key, { transactions: txns, total }]) => {
-        const d = new Date(key + "-01");
-        const sheetName = d.toLocaleDateString("en-GB", {
-          month: "short",
-          year: "numeric",
-        });
-
-        const rows = [
-          [
-            "#",
-            "Date",
-            "Bank Ref",
-            "Customer Ref",
-            "Description",
-            "Debit Amount",
-            "Running Balance",
-          ],
-          ...txns.map((tx) => [
-            tx.txn_serial_no,
-            fmtDate(tx.date),
-            tx.bank_reference_no || "",
-            tx.customer_reference_no || "",
-            tx.description,
-            Number(tx.debit_amount),
-            Number(tx.running_balance),
-          ]),
-          [],
-          ["", "", "", "", "Monthly Total Debits:", total, ""],
-        ];
-
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        ws["!cols"] = [
-          { wch: 5 },
-          { wch: 14 },
-          { wch: 14 },
-          { wch: 16 },
-          { wch: 40 },
-          { wch: 16 },
-          { wch: 16 },
-        ];
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      });
-
-    // Summary sheet
-    const summaryRows = [
-      ["Month", "No. of Debit Transactions", "Total Debit Amount"],
-      ...Object.entries(monthMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, { transactions: txns, total }]) => {
-          const d = new Date(key + "-01");
-          return [
-            d.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
-            txns.length,
-            total,
-          ];
-        }),
-    ];
-    const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
-    summaryWs["!cols"] = [{ wch: 20 }, { wch: 26 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
-
-    XLSX.writeFile(wb, `debit-transactions-txn${txnNumber}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Debit Transactions");
+    XLSX.writeFile(wb, `debit-transactions-${customerId}.xlsx`);
   };
   document.head.appendChild(script);
 };
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -231,84 +291,78 @@ function KVGrid({
   );
 }
 
-// ─── Detail View ─────────────────────────────────────────────────────────────
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+        <svg
+          className="h-5 w-5 text-muted-foreground"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.5}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
+          />
+        </svg>
+      </div>
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  );
+}
 
-function RecordDetail({
-  txnNumber,
+// ─── Customer Detail View ─────────────────────────────────────────────────────
+
+function CustomerDetail({
+  customerId,
   onBack,
 }: {
-  txnNumber: number;
+  customerId: string;
   onBack: () => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [accInfo, setAccInfo] = useState<CustAccInfo[]>([]);
-  const [balances, setBalances] = useState<Balance[]>([]);
-  const [summaries, setSummaries] = useState<Summary[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [txnPage, setTxnPage] = useState(1);
-  const TXN_PAGE_SIZE = 20;
+  const [data, setData] = useState<CustomerResult | null>(null);
   const [activeSection, setActiveSection] = useState<
     "account" | "balances" | "summary" | "transactions"
   >("account");
+  const [txnPage, setTxnPage] = useState(1);
+  const TXN_PAGE_SIZE = 20;
 
   useEffect(() => {
     setTxnPage(1);
-  }, [activeSection, txnNumber]);
+  }, [activeSection]);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const [accRes, balRes, sumRes, txnRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/bs-cust-acc-info`),
-          fetch(`${API_BASE_URL}/bs-balances`),
-          fetch(`${API_BASE_URL}/bs-summary`),
-          fetch(`${API_BASE_URL}/bs-transactions`),
-        ]);
-        const [accData, balData, sumData, txnData] = await Promise.all([
-          accRes.json(),
-          balRes.json(),
-          sumRes.json(),
-          txnRes.json(),
-        ]);
-        setAccInfo(
-          (accData.data || []).filter(
-            (r: CustAccInfo) => r.transaction_number === txnNumber,
-          ),
+        const res = await fetch(
+          `${API_BASE_URL}/bank-statement/customer/${encodeURIComponent(customerId)}`,
         );
-        setBalances(
-          (balData.data || []).filter(
-            (r: Balance) => r.transaction_number === txnNumber,
-          ),
-        );
-        setSummaries(
-          (sumData.data || []).filter(
-            (r: Summary) => r.transaction_number === txnNumber,
-          ),
-        );
-        setTransactions(
-          (txnData.data || []).filter(
-            (r: Transaction) => r.transaction_number === txnNumber,
-          ),
-        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        setData(json);
       } catch {
-        setError("Failed to load record details.");
+        setError("Failed to load customer statement details.");
       }
       setLoading(false);
     };
     load();
-  }, [txnNumber]);
+  }, [customerId]);
 
   const tabs = [
-    { key: "account", label: "Account Info", count: accInfo.length },
-    { key: "balances", label: "Balances", count: balances.length },
-    { key: "summary", label: "Summary", count: summaries.length },
+    { key: "account", label: "Account Info" },
+    { key: "balances", label: "Balances" },
+    { key: "summary", label: "Summary" },
     {
       key: "transactions",
       label: "Transactions",
-      count: transactions.length,
+      count: data?.transactions?.length,
     },
   ] as const;
 
@@ -337,11 +391,11 @@ function RecordDetail({
         </button>
         <div>
           <h3 className="text-sm font-semibold text-foreground">
-            Transaction #{txnNumber}
+            Customer: {customerId}
           </h3>
-          {accInfo[0] && (
+          {data?.custAccInfo && (
             <p className="text-xs text-muted-foreground">
-              {accInfo[0].account_name} · {accInfo[0].bank_name}
+              {data.custAccInfo.account_name} · {data.custAccInfo.bank_name}
             </p>
           )}
         </div>
@@ -361,7 +415,7 @@ function RecordDetail({
               }`}
           >
             {tab.label}
-            {tab.count > 0 && (
+            {"count" in tab && tab.count != null && tab.count > 0 && (
               <span
                 className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold
                 ${
@@ -410,179 +464,139 @@ function RecordDetail({
         </div>
       )}
 
-      {!loading && !error && (
+      {!loading && !error && data && (
         <>
           {/* Account Info */}
           {activeSection === "account" && (
-            <div className="space-y-3">
-              {accInfo.length === 0 ? (
-                <EmptyState label="No account info records found." />
-              ) : (
-                accInfo.map((acc, i) => (
-                  <div key={acc.id} className="rounded-lg border bg-card p-5">
-                    <div className="mb-4 flex items-center justify-between">
-                      <SectionLabel>
-                        Record {i + 1} · ID #{acc.id}
-                      </SectionLabel>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                        {fmtDate(acc.created_at)}
-                      </span>
-                    </div>
-                    <KVGrid
-                      items={[
-                        {
-                          label: "Account Name",
-                          value: acc.account_name,
-                          highlight: true,
-                        },
-                        { label: "Bank", value: acc.bank_name },
-                        { label: "Account No.", value: acc.account_no },
-                        { label: "IBAN", value: acc.iban },
-                        { label: "Customer ID", value: acc.customerid },
-                        { label: "City", value: acc.city },
-                        { label: "Area", value: acc.area },
-                        { label: "Building", value: acc.building },
-                        { label: "PO Box", value: acc.po_box },
-                        { label: "Postal Code", value: acc.postal_code },
-                        { label: "Created By", value: acc.created_by },
-                        { label: "Address", value: acc.address },
-                      ]}
-                    />
-                  </div>
-                ))
-              )}
+            <div className="rounded-lg border bg-card p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <SectionLabel>
+                  Account Info · ID #{data.custAccInfo.id}
+                </SectionLabel>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                  {fmtDate(data.custAccInfo.created_at)}
+                </span>
+              </div>
+              <KVGrid
+                items={[
+                  {
+                    label: "Account Name",
+                    value: data.custAccInfo.account_name,
+                    highlight: true,
+                  },
+                  { label: "Bank", value: data.custAccInfo.bank_name },
+                  { label: "Account No.", value: data.custAccInfo.account_no },
+                  { label: "IBAN", value: data.custAccInfo.iban },
+                  { label: "Customer ID", value: data.custAccInfo.customerid },
+                  {
+                    label: "Txn Number",
+                    value: data.custAccInfo.transaction_number,
+                  },
+                  { label: "City", value: data.custAccInfo.city },
+                  { label: "Area", value: data.custAccInfo.area },
+                  { label: "Building", value: data.custAccInfo.building },
+                  { label: "PO Box", value: data.custAccInfo.po_box },
+                  { label: "Postal Code", value: data.custAccInfo.postal_code },
+                  { label: "Created By", value: data.custAccInfo.created_by },
+                  { label: "Address", value: data.custAccInfo.address },
+                ]}
+              />
             </div>
           )}
 
           {/* Balances */}
           {activeSection === "balances" && (
-            <div className="space-y-3">
-              {balances.length === 0 ? (
-                <EmptyState label="No balance records found." />
-              ) : (
-                balances.map((bal, i) => (
-                  <div key={bal.id} className="rounded-lg border bg-card p-5">
-                    <div className="mb-4 flex items-center justify-between">
-                      <SectionLabel>
-                        Record {i + 1} · ID #{bal.id}
-                      </SectionLabel>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                        {fmtDate(bal.created_at)}
-                      </span>
-                    </div>
-                    <KVGrid
-                      items={[
-                        {
-                          label: "Period From",
-                          value: fmtDate(bal.start_date),
-                        },
-                        { label: "Period To", value: fmtDate(bal.end_date) },
-                        {
-                          label: "Opening Balance",
-                          value: fmt(bal.opening_balance),
-                        },
-                        {
-                          label: "Closing Balance",
-                          value: fmt(bal.closing_available_balance),
-                          highlight: true,
-                        },
-                        {
-                          label: "Ledger Balance",
-                          value: fmt(bal.ledger_balance),
-                        },
-                        {
-                          label: "Unclear Balance",
-                          value: fmt(bal.unclear_balance),
-                        },
-                        {
-                          label: "Average Balance",
-                          value: fmt(bal.average_balance),
-                        },
-                        {
-                          label: "Avg Debit Balance",
-                          value: fmt(bal.average_debit_balance),
-                        },
-                        {
-                          label: "Avg Credit Balance",
-                          value: fmt(bal.average_credit_balance),
-                        },
-                      ]}
-                    />
-                  </div>
-                ))
-              )}
+            <div className="rounded-lg border bg-card p-5">
+              <SectionLabel>Balance Overview</SectionLabel>
+              <KVGrid
+                items={[
+                  {
+                    label: "Opening Balance",
+                    value: fmt(data.balances.opening_balance),
+                  },
+                  {
+                    label: "Closing Balance",
+                    value: fmt(data.balances.closing_available_balance),
+                    highlight: true,
+                  },
+                  {
+                    label: "Ledger Balance",
+                    value: fmt(data.balances.ledger_balance),
+                  },
+                  {
+                    label: "Unclear Balance",
+                    value: fmt(data.balances.unclear_balance),
+                  },
+                  {
+                    label: "Average Balance",
+                    value: fmt(data.balances.average_balance),
+                  },
+                  {
+                    label: "Avg Debit Balance",
+                    value: fmt(data.balances.average_debit_balance),
+                  },
+                  {
+                    label: "Avg Credit Balance",
+                    value: fmt(data.balances.average_credit_balance),
+                  },
+                ]}
+              />
             </div>
           )}
 
           {/* Summary */}
           {activeSection === "summary" && (
-            <div className="space-y-3">
-              {summaries.length === 0 ? (
-                <EmptyState label="No summary records found." />
-              ) : (
-                summaries.map((sum, i) => (
-                  <div key={sum.id} className="rounded-lg border bg-card p-5">
-                    <div className="mb-4 flex items-center justify-between">
-                      <SectionLabel>
-                        Record {i + 1} · ID #{sum.id}
-                      </SectionLabel>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                        {fmtDate(sum.created_at)}
-                      </span>
-                    </div>
-                    <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      {[
-                        {
-                          label: "No. of Debits",
-                          value: sum.total_no_of_debits,
-                          color: "bg-red-50 border-red-100",
-                          text: "text-red-700",
-                        },
-                        {
-                          label: "No. of Credits",
-                          value: sum.total_no_of_credits,
-                          color: "bg-green-50 border-green-100",
-                          text: "text-green-700",
-                        },
-                        {
-                          label: "Total Debits",
-                          value: fmt(sum.total_debit_amount),
-                          color: "bg-red-50 border-red-100",
-                          text: "text-red-700",
-                        },
-                        {
-                          label: "Total Credits",
-                          value: fmt(sum.total_credit_amount),
-                          color: "bg-green-50 border-green-100",
-                          text: "text-green-700",
-                        },
-                      ].map((item) => (
-                        <div
-                          key={item.label}
-                          className={`rounded-lg border p-3 ${item.color}`}
-                        >
-                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                            {item.label}
-                          </p>
-                          <p
-                            className={`tabular-nums text-sm font-bold ${item.text}`}
-                          >
-                            {item.value}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+            <div className="rounded-lg border bg-card p-5">
+              <SectionLabel>Transaction Summary</SectionLabel>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  {
+                    label: "No. of Debits",
+                    value: data.summary.total_no_of_debits,
+                    color: "bg-red-50 border-red-100",
+                    text: "text-red-700",
+                  },
+                  {
+                    label: "No. of Credits",
+                    value: data.summary.total_no_of_credits,
+                    color: "bg-green-50 border-green-100",
+                    text: "text-green-700",
+                  },
+                  {
+                    label: "Total Debits",
+                    value: fmt(data.summary.total_debit_amount),
+                    color: "bg-red-50 border-red-100",
+                    text: "text-red-700",
+                  },
+                  {
+                    label: "Total Credits",
+                    value: fmt(data.summary.total_credit_amount),
+                    color: "bg-green-50 border-green-100",
+                    text: "text-green-700",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className={`rounded-lg border p-3 ${item.color}`}
+                  >
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <p
+                      className={`tabular-nums text-sm font-bold ${item.text}`}
+                    >
+                      {item.value}
+                    </p>
                   </div>
-                ))
-              )}
+                ))}
+              </div>
             </div>
           )}
 
           {/* Transactions */}
           {activeSection === "transactions" &&
             (() => {
-              // Sort by date descending (newest first), then by txn_serial_no as tiebreak
-              const sorted = [...transactions].sort((a, b) => {
+              const sorted = [...(data.transactions || [])].sort((a, b) => {
                 const diff =
                   new Date(a.date).getTime() - new Date(b.date).getTime();
                 return diff !== 0 ? diff : a.txn_serial_no - b.txn_serial_no;
@@ -606,7 +620,6 @@ function RecordDetail({
                     </div>
                   ) : (
                     <>
-                      {/* Table header bar */}
                       <div className="flex items-center justify-between border-b px-5 py-3">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                           Transaction Rows
@@ -617,7 +630,12 @@ function RecordDetail({
                           </span>
                           <button
                             onClick={() =>
-                              downloadDebitsByMonth(transactions, txnNumber)
+                              downloadDebitsByMonth(
+                                data.transactions,
+                                customerId,
+                                data.custAccInfo.account_name,
+                                data.custAccInfo.bank_name,
+                              )
                             }
                             className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 active:bg-green-800"
                           >
@@ -639,7 +657,6 @@ function RecordDetail({
                         </div>
                       </div>
 
-                      {/* Table */}
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead>
@@ -657,7 +674,7 @@ function RecordDetail({
                                 <th
                                   key={h}
                                   className={`px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground
-                        ${["Debit", "Credit", "Balance"].includes(h) ? "text-right" : "text-left"}`}
+                                    ${["Debit", "Credit", "Balance"].includes(h) ? "text-right" : "text-left"}`}
                                 >
                                   {h}
                                 </th>
@@ -666,7 +683,6 @@ function RecordDetail({
                           </thead>
                           <tbody className="divide-y divide-border">
                             {pageSlice.map((tx) => {
-                              // Format date with time if present
                               const dtObj = new Date(tx.date);
                               const datePart = dtObj.toLocaleDateString(
                                 "en-GB",
@@ -678,10 +694,7 @@ function RecordDetail({
                               );
                               const timePart = dtObj.toLocaleTimeString(
                                 "en-GB",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
+                                { hour: "2-digit", minute: "2-digit" },
                               );
 
                               return (
@@ -703,7 +716,7 @@ function RecordDetail({
                                   <td className="max-w-[220px] truncate px-4 py-2.5 text-foreground">
                                     {tx.description}
                                   </td>
-                                  <td className="max-w-[220px] truncate px-4 py-2.5 text-foreground">
+                                  <td className="max-w-[140px] truncate px-4 py-2.5 text-foreground">
                                     {tx.category || "—"}
                                   </td>
                                   <td className="px-4 py-2.5 font-mono text-muted-foreground">
@@ -779,7 +792,6 @@ function RecordDetail({
                             Prev
                           </button>
 
-                          {/* Page number pills — show up to 5 around current page */}
                           <div className="flex items-center gap-1">
                             {Array.from({ length: totalPages }, (_, i) => i + 1)
                               .filter(
@@ -807,11 +819,11 @@ function RecordDetail({
                                     key={item}
                                     onClick={() => setTxnPage(item as number)}
                                     className={`min-w-[28px] rounded-md px-2 py-1.5 text-xs font-medium transition-colors
-                          ${
-                            safePage === item
-                              ? "bg-blue-600 text-white shadow-sm"
-                              : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-                          }`}
+                                      ${
+                                        safePage === item
+                                          ? "bg-blue-600 text-white shadow-sm"
+                                          : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                                      }`}
                                   >
                                     {item}
                                   </button>
@@ -854,79 +866,50 @@ function RecordDetail({
   );
 }
 
-function EmptyState({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-10 text-center">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-        <svg
-          className="h-5 w-5 text-muted-foreground"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-          />
-        </svg>
-      </div>
-      <p className="text-sm text-muted-foreground">{label}</p>
-    </div>
-  );
-}
+// ─── Main Component ───────────────────────────────────────────────────────────
 
-// ─── Main List Component ──────────────────────────────────────────────────────
-
-export function BankStatementRecords() {
+function CustomerStatementRecords() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [records, setRecords] = useState<GroupedRecord[]>([]);
-  const [selectedTxn, setSelectedTxn] = useState<number | null>(null);
+  const [customerIds, setCustomerIds] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fetched, setFetched] = useState(false);
 
-  const loadRecords = useCallback(async () => {
+  const loadCustomerIds = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/bs-cust-acc-info`);
       const json = await res.json();
-      const data: CustAccInfo[] = json.data || [];
+      const data: CustAccInfoRaw[] = json.data || [];
 
-      // Deduplicate by transaction_number — keep first occurrence
-      const seen = new Set<number>();
-      const grouped: GroupedRecord[] = [];
+      // Deduplicate by customerid
+      const seen = new Set<string>();
+      const ids: string[] = [];
       for (const row of data) {
-        if (!seen.has(row.transaction_number)) {
-          seen.add(row.transaction_number);
-          grouped.push({
-            transaction_number: row.transaction_number,
-            account_name: row.account_name,
-            bank_name: row.bank_name,
-            account_no: row.account_no,
-            created_at: row.created_at,
-          });
+        if (!seen.has(row.customerid)) {
+          seen.add(row.customerid);
+          ids.push(row.customerid);
         }
       }
-      setRecords(grouped);
+      setCustomerIds(ids);
       setFetched(true);
     } catch {
-      setError("Failed to load records. Check your API connection.");
+      setError("Failed to load customer IDs. Check your API connection.");
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    loadRecords();
-  }, [loadRecords]);
+    loadCustomerIds();
+  }, [loadCustomerIds]);
 
   // ── Detail view ──
-  if (selectedTxn !== null) {
+  if (selectedId !== null) {
     return (
-      <RecordDetail
-        txnNumber={selectedTxn}
-        onBack={() => setSelectedTxn(null)}
+      <CustomerDetail
+        customerId={selectedId}
+        onBack={() => setSelectedId(null)}
       />
     );
   }
@@ -938,14 +921,14 @@ export function BankStatementRecords() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-foreground">
-            Bank Statement Records
+            Customer Statement Records
           </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Select a transaction to view full details across all modules
+            Select a customer ID to view full statement details
           </p>
         </div>
         <button
-          onClick={loadRecords}
+          onClick={loadCustomerIds}
           disabled={loading}
           className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
         >
@@ -997,35 +980,36 @@ export function BankStatementRecords() {
               />
             </svg>
           </div>
-          <p className="text-sm text-muted-foreground">Loading records…</p>
+          <p className="text-sm text-muted-foreground">Loading customer IDs…</p>
         </div>
       )}
 
-      {/* Empty state */}
-      {fetched && !loading && records.length === 0 && (
+      {/* Empty */}
+      {fetched && !loading && customerIds.length === 0 && (
         <div className="rounded-lg border bg-card">
-          <EmptyState label="No bank statement records found." />
+          <EmptyState label="No customer IDs found." />
         </div>
       )}
 
-      {/* Records list */}
-      {!loading && records.length > 0 && (
+      {/* Customer ID list */}
+      {!loading && customerIds.length > 0 && (
         <div className="rounded-lg border bg-card overflow-hidden">
           <div className="border-b bg-muted/50 px-5 py-3">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {records.length} record{records.length !== 1 ? "s" : ""} found
+              {customerIds.length} distinct customer ID
+              {customerIds.length !== 1 ? "s" : ""} found
             </span>
           </div>
           <div className="divide-y divide-border">
-            {records.map((rec) => (
+            {customerIds.map((id) => (
               <button
-                key={rec.transaction_number}
-                onClick={() => setSelectedTxn(rec.transaction_number)}
+                key={id}
+                onClick={() => setSelectedId(id)}
                 className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-accent/40 group"
               >
                 <div className="flex items-center gap-4">
                   {/* Icon */}
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
                     <svg
                       className="h-5 w-5"
                       fill="none"
@@ -1036,7 +1020,7 @@ export function BankStatementRecords() {
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
                       />
                     </svg>
                   </div>
@@ -1044,41 +1028,27 @@ export function BankStatementRecords() {
                   {/* Info */}
                   <div>
                     <p className="text-sm font-semibold text-foreground">
-                      {rec.account_name}
+                      {id}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                        #{rec.transaction_number}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {rec.bank_name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">·</span>
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {rec.account_no}
-                      </span>
-                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Click to view full statement
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-muted-foreground">
-                    {fmtDate(rec.created_at)}
-                  </span>
-                  <svg
-                    className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                    />
-                  </svg>
-                </div>
+                <svg
+                  className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                  />
+                </svg>
               </button>
             ))}
           </div>
@@ -1087,3 +1057,5 @@ export function BankStatementRecords() {
     </div>
   );
 }
+
+export default CustomerStatementRecords;

@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankStatement } from "@/components/settings/bankstatement";
 import { CreditScore } from "@/components/settings/creditscore";
 import { BankStatementRecords } from "@/components/settings/bankstatementrecords";
+import CustomerStatmentRecord from "@/components/settings/bankStatementByCust";
 
 export default function StatementPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -24,6 +25,7 @@ export default function StatementPage() {
             <TabsTrigger value="overview">Bank Statement</TabsTrigger>
             <TabsTrigger value="history">User Credit Score</TabsTrigger>
             <TabsTrigger value="records">Bank Statement Records</TabsTrigger>
+            <TabsTrigger value="customer">Customer Records</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -36,6 +38,9 @@ export default function StatementPage() {
 
           <TabsContent value="records" className="space-y-4">
             <BankStatementRecords />
+          </TabsContent>
+          <TabsContent value="customer" className="space-y-4">
+            <CustomerStatmentRecord />
           </TabsContent>
         </Tabs>
       </div>

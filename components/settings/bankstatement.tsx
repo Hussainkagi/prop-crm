@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
 
 const CLAUDE_KEY = process.env.NEXT_PUBLIC_CLAUDE_KEY;
 const API_BASE_URL =
@@ -63,16 +63,13 @@ interface StatementData {
   loanAssessment: LoanAssessment;
 }
 
-interface SubmitStatus {
-  custAccInfo: "idle" | "loading" | "success" | "error";
-  balances: "idle" | "loading" | "success" | "error";
-  summary: "idle" | "loading" | "success" | "error";
-  transactions: "idle" | "loading" | "success" | "error";
-}
-
-interface SubmitProgress {
-  current: number;
-  total: number;
+interface ExistingRecord {
+  id: number;
+  transaction_number: number;
+  customerid: string;
+  bank_name: string;
+  account_no: string;
+  account_name: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -89,15 +86,6 @@ function fileToBase64(file: File): Promise<string> {
 const fmt = (n: number) =>
   (n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 });
 
-const ratingTextColor = (r: string) =>
-  ({
-    Excellent: "text-green-600",
-    Good: "text-lime-600",
-    Fair: "text-amber-500",
-    Poor: "text-orange-500",
-    "Very Poor": "text-red-500",
-  })[r] ?? "text-muted-foreground";
-
 const ratingHex = (r: string) =>
   ({
     Excellent: "#16a34a",
@@ -106,6 +94,15 @@ const ratingHex = (r: string) =>
     Poor: "#f97316",
     "Very Poor": "#ef4444",
   })[r] ?? "#94a3b8";
+
+const ratingTextColor = (r: string) =>
+  ({
+    Excellent: "text-green-600",
+    Good: "text-lime-600",
+    Fair: "text-amber-500",
+    Poor: "text-orange-500",
+    "Very Poor": "text-red-500",
+  })[r] ?? "text-muted-foreground";
 
 const categoryBadge = (cat: string) =>
   ({
@@ -119,35 +116,7 @@ const categoryBadge = (cat: string) =>
     Other: "bg-gray-100 text-gray-500",
   })[cat] ?? "bg-gray-100 text-gray-500";
 
-const statusIcon = (s: SubmitStatus[keyof SubmitStatus]) => {
-  if (s === "loading")
-    return (
-      <svg
-        className="h-3.5 w-3.5 animate-spin text-blue-500"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
-        />
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8v8z"
-        />
-      </svg>
-    );
-  if (s === "success") return <span className="text-green-600 text-sm">✓</span>;
-  if (s === "error") return <span className="text-red-500 text-sm">✗</span>;
-  return <span className="text-muted-foreground text-sm">○</span>;
-};
-
-// ─── Prompts ──────────────────────────────────────────────────────────────────
+// ─── System Prompt ────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are a financial analyst AI specialized in bank statement analysis for loan assessment purposes.
 When given a bank statement PDF, extract and return ONLY a valid JSON object (no markdown, no explanation, no code fences) with this exact structure:
@@ -206,7 +175,7 @@ When given a bank statement PDF, extract and return ONLY a valid JSON object (no
 }
 
 CRITICAL TRANSACTION EXTRACTION RULES:
-- You MUST extract EVERY SINGLE transaction row from ALL pages of the PDF — do not skip, truncate, or summarize any.
+- You MUST extract EVERY SINGLE transaction row from ALL pages of the PDF.
 - The transactions array length MUST equal debitCount + creditCount exactly.
 - Process every page completely before returning the JSON.
 - Each row in the statement table = one object in the transactions array.
@@ -227,43 +196,57 @@ export function BankStatement() {
   const [activeTab, setActiveTab] = useState<
     "preview" | "transactions" | "assessment"
   >("preview");
-  const [transactionNumber] = useState(
-    () => Math.floor(Math.random() * 90000) + 10000,
-  );
-  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>({
-    custAccInfo: "idle",
-    balances: "idle",
-    summary: "idle",
-    transactions: "idle",
-  });
-  const [submitProgress, setSubmitProgress] = useState<SubmitProgress>({
-    current: 0,
-    total: 0,
-  });
+
+  // ── Existing transaction records ──
+  const [existingRecords, setExistingRecords] = useState<ExistingRecord[]>([]);
+  const [existingLoading, setExistingLoading] = useState(false);
+  const [selectedTransactionNo, setSelectedTransactionNo] = useState<
+    number | null
+  >(null);
+
+  // ── Submit state ──
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [submitDone, setSubmitDone] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [returnedTransactionNo, setReturnedTransactionNo] = useState<
+    number | null
+  >(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ── Extract data from PDF via Claude API ──
+  // ── Fetch all existing transaction numbers on mount ──
+  useEffect(() => {
+    const fetchExisting = async () => {
+      setExistingLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/bs-cust-acc-info`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setExistingRecords(json.data);
+        }
+      } catch {
+        // silently fail — dropdown will just be empty
+      }
+      setExistingLoading(false);
+    };
+    fetchExisting();
+  }, []);
+
+  // ── Analyze PDF ──
   const analyzeFile = async (f: File) => {
     setLoading(true);
     setLoadingStage("Reading PDF…");
     setError(null);
     setData(null);
     setSubmitDone(false);
-    setSubmitProgress({ current: 0, total: 0 });
-    setSubmitStatus({
-      custAccInfo: "idle",
-      balances: "idle",
-      summary: "idle",
-      transactions: "idle",
-    });
+    setReturnedTransactionNo(null);
+    setSubmitError(null);
 
     try {
-      setLoadingStage("Converting file to base64…");
+      setLoadingStage("Converting file…");
       const base64 = await fileToBase64(f);
 
-      setLoadingStage("— extracting all transactions…");
+      setLoadingStage("Extracting all transactions…");
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -274,8 +257,7 @@ export function BankStatement() {
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          // ── KEY FIX: increased from 8000 to 16000 so large statements fit ──
-          max_tokens: 16000,
+          max_tokens: 64000,
           system: SYSTEM_PROMPT,
           messages: [
             {
@@ -291,8 +273,7 @@ export function BankStatement() {
                 },
                 {
                   type: "text",
-                  // ── KEY FIX: explicit instruction to read ALL pages ──
-                  text: "Analyze this bank statement and return the JSON as instructed. IMPORTANT: This PDF has multiple pages. You MUST read every page and extract EVERY transaction row. The transactions array must be complete — its length must equal debitCount + creditCount as shown in the statement header. Do not stop early or skip any rows.",
+                  text: "Analyze this bank statement and return the JSON as instructed. IMPORTANT: This PDF has multiple pages. You MUST read every page and extract EVERY transaction row. The transactions array must be complete — its length must equal debitCount + creditCount. Do not stop early or skip any rows.",
                 },
               ],
             },
@@ -301,24 +282,17 @@ export function BankStatement() {
       });
 
       const result = await response.json();
-
-      if (result.error) {
+      if (result.error)
         throw new Error(result.error.message || "Claude API error");
-      }
 
-      setLoadingStage("Parsing extracted data…");
-
+      setLoadingStage("Parsing data…");
       const text: string =
         result.content?.find((c: { type: string }) => c.type === "text")
           ?.text ?? "";
-
-      // ── KEY FIX: robust JSON extraction (strip any accidental fences) ──
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON found in Claude response");
-      const clean = jsonMatch[0];
-      const parsed: StatementData = JSON.parse(clean);
+      const parsed: StatementData = JSON.parse(jsonMatch[0]);
 
-      // ── Warn (but don't block) if count still mismatches ──
       const expected = (parsed.debitCount ?? 0) + (parsed.creditCount ?? 0);
       const actual = parsed.transactions?.length ?? 0;
       if (expected > 0 && actual !== expected) {
@@ -335,7 +309,6 @@ export function BankStatement() {
           : "Failed to analyze the statement. Please try again.",
       );
     }
-
     setLoading(false);
     setLoadingStage("");
   };
@@ -349,129 +322,64 @@ export function BankStatement() {
     analyzeFile(f);
   };
 
-  // ── Submit to all 4 APIs ──
+  // ── Single unified submit to /upload-bank-statement ──
   const handleSubmit = async () => {
     if (!data) return;
     setSubmitError(null);
     setSubmitDone(false);
-    setSubmitProgress({ current: 0, total: 0 });
+    setSubmitLoading(true);
+    setReturnedTransactionNo(null);
 
-    const today = new Date().toISOString().slice(0, 10);
-
-    // ── Step 1: Customer Account Info ──
-    setSubmitStatus((s) => ({ ...s, custAccInfo: "loading" }));
     try {
-      const res = await fetch(`${API_BASE_URL}/bs-cust-acc-info`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          Transaction_number: transactionNumber,
-          CustomerID: `CUST-${transactionNumber}`,
-          bank_name: data.bank,
-          account_no: data.accountNumber,
-          iban: data.iban,
-          account_name: data.accountHolder,
-          address: data.address,
-          po_box: parseInt(data.poBox) || 0,
-          building: data.building,
-          area: data.area,
-          city: data.city,
-          postal_code: parseInt(data.postalCode) || 0,
-          Created_Date: today,
-          Created_by: "system",
-        }),
-      });
-      if (!res.ok) throw new Error();
-      setSubmitStatus((s) => ({ ...s, custAccInfo: "success" }));
-    } catch {
-      setSubmitStatus((s) => ({ ...s, custAccInfo: "error" }));
-      setSubmitError("Failed to save Customer Account Info.");
-      return;
-    }
+      const today = new Date().toISOString().slice(0, 10);
 
-    // ── Step 2: Balances ──
-    setSubmitStatus((s) => ({ ...s, balances: "loading" }));
-    try {
-      const res = await fetch(`${API_BASE_URL}/bs-balances`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          Transaction_number: transactionNumber,
-          start_date: data.period.from,
-          end_date: data.period.to,
-          opening_balance: data.openingBalance,
-          closing_available_balance: data.closingBalance,
-          ledger_balance: data.ledgerBalance ?? data.closingBalance,
-          unclear_balance: data.unclearBalance ?? 0,
-          average_balance: data.averageBalance,
-          average_debit_balance: data.averageDebitBalance ?? 0,
-          average_credit_balance: data.averageCreditBalance ?? 0,
-        }),
-      });
-      if (!res.ok) throw new Error();
-      setSubmitStatus((s) => ({ ...s, balances: "success" }));
-    } catch {
-      setSubmitStatus((s) => ({ ...s, balances: "error" }));
-      setSubmitError("Failed to save Balances.");
-      return;
-    }
+      const payload: Record<string, unknown> = {
+        // Only include transaction_no if user selected one; omit to let backend auto-generate
+        ...(selectedTransactionNo
+          ? { transaction_no: selectedTransactionNo }
+          : {}),
 
-    // ── Step 3: Summary ──
-    setSubmitStatus((s) => ({ ...s, summary: "loading" }));
-    try {
-      const res = await fetch(`${API_BASE_URL}/bs-summary`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          Transaction_number: transactionNumber,
-          total_no_of_debits: data.debitCount,
-          total_no_of_credits: data.creditCount,
-          total_debit_amount: data.totalDebits,
-          total_credit_amount: data.totalCredits,
-          debit_credit_filter: 0,
-          amount_range: 0,
-          min: 0,
-          max: 0,
-        }),
-      });
-      if (!res.ok) throw new Error();
-      setSubmitStatus((s) => ({ ...s, summary: "success" }));
-    } catch {
-      setSubmitStatus((s) => ({ ...s, summary: "error" }));
-      setSubmitError("Failed to save Summary.");
-      return;
-    }
+        // BS_Cust_Acc_info
+        CustomerID: selectedTransactionNo
+          ? `CUST-${selectedTransactionNo}`
+          : `CUST-NEW`,
+        bank_name: data.bank,
+        account_no: data.accountNumber,
+        iban: data.iban,
+        account_name: data.accountHolder,
+        address: data.address,
+        po_box: parseInt(data.poBox) || 0,
+        building: data.building,
+        area: data.area,
+        city: data.city,
+        postal_code: parseInt(data.postalCode) || 0,
+        Created_Date: today,
+        Created_by: "system",
 
-    // ── Step 4: Transactions (batched with progress + delay) ──
-    setSubmitStatus((s) => ({ ...s, transactions: "loading" }));
-    try {
-      // ── Validation: total count must match debitCount + creditCount ──
-      const expectedCount = (data.debitCount ?? 0) + (data.creditCount ?? 0);
-      const actualCount = data.transactions?.length ?? 0;
-      if (expectedCount > 0 && actualCount !== expectedCount) {
-        setSubmitStatus((s) => ({ ...s, transactions: "error" }));
-        setSubmitError(
-          `Transaction count mismatch: statement header says ${expectedCount} (${data.debitCount} debits + ${data.creditCount} credits) but extracted ${actualCount} transactions. Please re-analyze the PDF before submitting.`,
-        );
-        return;
-      }
+        // BS_Balances
+        start_date: data.period.from,
+        end_date: data.period.to,
+        opening_balance: data.openingBalance,
+        closing_available_balance: data.closingBalance,
+        ledger_balance: data.ledgerBalance ?? data.closingBalance,
+        unclear_balance: data.unclearBalance ?? 0,
+        average_balance: data.averageBalance,
+        average_debit_balance: data.averageDebitBalance ?? 0,
+        average_credit_balance: data.averageCreditBalance ?? 0,
 
-      const BATCH_SIZE = 10;
-      const MAX_RETRIES = 3;
-      const RETRY_DELAY_MS = 600;
-      // ── KEY FIX: delay between batches to avoid hammering the backend ──
-      const INTER_BATCH_DELAY_MS = 300;
+        // BS_Summary
+        total_no_of_debits: data.debitCount,
+        total_no_of_credits: data.creditCount,
+        total_debit_amount: data.totalDebits,
+        total_credit_amount: data.totalCredits,
+        debit_credit_filter: 0,
+        amount_range: 0,
+        min: 0,
+        max: 0,
 
-      const total = data.transactions.length;
-      setSubmitProgress({ current: 0, total });
-
-      const submitTx = async (
-        tx: Transaction,
-        index: number,
-      ): Promise<void> => {
-        const body = JSON.stringify({
-          Transaction_number: transactionNumber,
-          Txn_serial_no: index + 1,
+        // BS_transactions array
+        transactions: data.transactions.map((tx, i) => ({
+          Txn_serial_no: i + 1,
           date: tx.date,
           value_date: tx.value_date || tx.date,
           bank_reference_no:
@@ -483,58 +391,41 @@ export function BankStatement() {
           credit_amount: tx.credit ?? 0,
           running_balance: tx.balance,
           category: tx.category,
-        });
-
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-          const res = await fetch(`${API_BASE_URL}/bs-transactions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body,
-          });
-          if (res.ok) return;
-          if (attempt < MAX_RETRIES) {
-            await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
-          } else {
-            throw new Error(
-              `Txn #${index + 1} failed after ${MAX_RETRIES} attempts`,
-            );
-          }
-        }
+        })),
       };
 
-      // ── Process in batches, update progress, pause between batches ──
-      for (let i = 0; i < data.transactions.length; i += BATCH_SIZE) {
-        const batch = data.transactions.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map((tx, j) => submitTx(tx, i + j)));
+      const res = await fetch(`${API_BASE_URL}/upload-bank-statement`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-        // Update progress counter after each batch completes
-        setSubmitProgress({ current: Math.min(i + BATCH_SIZE, total), total });
+      const json = await res.json();
+      if (!res.ok || !json.success)
+        throw new Error(json.message || "Upload failed");
 
-        // Pause between batches (skip delay after last batch)
-        if (i + BATCH_SIZE < data.transactions.length) {
-          await new Promise((r) => setTimeout(r, INTER_BATCH_DELAY_MS));
-        }
-      }
-
-      setSubmitStatus((s) => ({ ...s, transactions: "success" }));
+      setReturnedTransactionNo(json.transaction_no);
       setSubmitDone(true);
+
+      // Refresh the dropdown list so the new record appears immediately
+      const refreshed = await fetch(`${API_BASE_URL}/bs-cust-acc-info`);
+      const refreshedJson = await refreshed.json();
+      if (refreshedJson.success) setExistingRecords(refreshedJson.data);
     } catch (err) {
-      setSubmitStatus((s) => ({ ...s, transactions: "error" }));
       setSubmitError(
         err instanceof Error
           ? err.message
-          : "Failed to save one or more transactions.",
+          : "Failed to submit. Please try again.",
       );
     }
+    setSubmitLoading(false);
   };
 
-  const allSuccess =
-    submitStatus.custAccInfo === "success" &&
-    submitStatus.balances === "success" &&
-    submitStatus.summary === "success" &&
-    submitStatus.transactions === "success";
-
-  const isSubmitting = Object.values(submitStatus).some((s) => s === "loading");
+  const extractedCount = data?.transactions?.length ?? 0;
+  const expectedCount = data
+    ? (data.debitCount ?? 0) + (data.creditCount ?? 0)
+    : 0;
+  const countMismatch = expectedCount > 0 && extractedCount !== expectedCount;
 
   const scoreArc = (score: number) => {
     const total = Math.PI * 50;
@@ -544,17 +435,88 @@ export function BankStatement() {
     };
   };
 
-  // ── Extracted transaction count vs expected ──
-  const extractedCount = data?.transactions?.length ?? 0;
-  const expectedCount = data
-    ? (data.debitCount ?? 0) + (data.creditCount ?? 0)
-    : 0;
-  const countMismatch = expectedCount > 0 && extractedCount !== expectedCount;
-
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-5">
+      {/* ── Transaction Selector ── */}
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Transaction Context
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Select an existing transaction to append data, or leave blank to
+              create a new one
+            </p>
+          </div>
+          {existingLoading && (
+            <svg
+              className="h-4 w-4 animate-spin text-blue-500"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8z"
+              />
+            </svg>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedTransactionNo ?? ""}
+            onChange={(e) =>
+              setSelectedTransactionNo(
+                e.target.value ? parseInt(e.target.value) : null,
+              )
+            }
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">— New transaction</option>
+            {existingRecords.map((r) => (
+              <option key={r.id} value={r.transaction_number}>
+                #{r.transaction_number} — {r.account_name} · {r.bank_name} ·{" "}
+                {r.account_no}
+              </option>
+            ))}
+          </select>
+
+          {selectedTransactionNo && (
+            <button
+              onClick={() => setSelectedTransactionNo(null)}
+              className="rounded-md border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Status pill */}
+        {selectedTransactionNo ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-medium text-amber-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            Will append to transaction #{selectedTransactionNo}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-medium text-green-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            New transaction — ID auto-generated
+          </span>
+        )}
+      </div>
+
       {/* ── Upload Zone ── */}
       <div
         onClick={() => inputRef.current?.click()}
@@ -651,10 +613,9 @@ export function BankStatement() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{loadingStage}</p>
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Large statements with many transactions may take 15–30 seconds
+              Large statements may take 15–30 seconds
             </p>
           </div>
-          {/* Animated progress bar */}
           <div className="mx-auto max-w-xs">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div
@@ -669,38 +630,39 @@ export function BankStatement() {
       {/* ── Results ── */}
       {data && (
         <div className="space-y-4">
-          {/* Transaction Number Badge */}
+          {/* Header row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Transaction #
+                Mode
               </span>
-              <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                {transactionNumber}
-              </span>
-            </div>
-            {/* ── Transaction count indicator ── */}
-            <div className="flex items-center gap-2">
-              {countMismatch ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-medium text-amber-700">
-                  ⚠ Extracted {extractedCount}/{expectedCount} txns
+              {selectedTransactionNo ? (
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                  Updating #{selectedTransactionNo}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-medium text-green-700">
-                  ✓ {extractedCount} transactions extracted
+                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                  Creating New
                 </span>
               )}
             </div>
+            {countMismatch ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-medium text-amber-700">
+                ⚠ Extracted {extractedCount}/{expectedCount} txns
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-medium text-green-700">
+                ✓ {extractedCount} transactions extracted
+              </span>
+            )}
           </div>
 
-          {/* ── Count mismatch warning ── */}
           {countMismatch && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-              <strong>Transaction count mismatch:</strong> The statement header
-              shows {expectedCount} transactions ({data.debitCount} debits +{" "}
+              <strong>Transaction count mismatch:</strong> Statement header
+              shows {expectedCount} ({data.debitCount} debits +{" "}
               {data.creditCount} credits) but only {extractedCount} were
-              extracted. Try re-uploading the file for a complete extraction
-              before submitting.
+              extracted. Try re-uploading before submitting.
             </div>
           )}
 
@@ -728,7 +690,6 @@ export function BankStatement() {
           {/* ── Tab: Account Preview ── */}
           {activeTab === "preview" && (
             <div className="space-y-4">
-              {/* Account Info */}
               <div className="rounded-lg border bg-card p-5">
                 <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   BS_Cust_Acc_info
@@ -757,7 +718,6 @@ export function BankStatement() {
                 </div>
               </div>
 
-              {/* Balances */}
               <div className="rounded-lg border bg-card p-5">
                 <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   BS_Balances
@@ -812,7 +772,6 @@ export function BankStatement() {
                 </div>
               </div>
 
-              {/* Summary */}
               <div className="rounded-lg border bg-card p-5">
                 <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   BS_Summary
@@ -863,7 +822,7 @@ export function BankStatement() {
                         <th
                           key={h}
                           className={`px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground
-                            ${["Debit", "Credit", "Balance"].includes(h) ? "text-right" : "text-left"}`}
+                          ${["Debit", "Credit", "Balance"].includes(h) ? "text-right" : "text-left"}`}
                         >
                           {h}
                         </th>
@@ -918,7 +877,6 @@ export function BankStatement() {
           {/* ── Tab: Loan Assessment ── */}
           {activeTab === "assessment" && data.loanAssessment && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {/* Score Card */}
               <div className="rounded-lg border bg-card p-5 space-y-4">
                 <h4 className="text-sm font-semibold text-foreground">
                   Eligibility Score
@@ -976,13 +934,11 @@ export function BankStatement() {
                     </p>
                   </div>
                 </div>
-
                 <div className="rounded-md bg-muted/50 px-3 py-2.5">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {data.loanAssessment.recommendation}
                   </p>
                 </div>
-
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-1.5">
                     {(data.loanAssessment.positiveSignals || []).map((s, i) => (
@@ -1007,7 +963,6 @@ export function BankStatement() {
                 </div>
               </div>
 
-              {/* Cash Flow Signals */}
               <div className="rounded-lg border bg-card p-5 space-y-3">
                 <h4 className="text-sm font-semibold text-foreground">
                   Cash Flow Signals
@@ -1074,12 +1029,14 @@ export function BankStatement() {
                   Submit to Database
                 </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Saves data across all 4 BS_ tables sequentially
+                  {selectedTransactionNo
+                    ? `Updating transaction #${selectedTransactionNo} — POST /upload-bank-statement`
+                    : "Creating new record — POST /upload-bank-statement (ID auto-generated)"}
                 </p>
               </div>
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || allSuccess || countMismatch}
+                disabled={submitLoading || submitDone || countMismatch}
                 className="rounded-md bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                 title={
                   countMismatch
@@ -1087,89 +1044,87 @@ export function BankStatement() {
                     : ""
                 }
               >
-                {isSubmitting
+                {submitLoading
                   ? "Submitting…"
-                  : allSuccess
+                  : submitDone
                     ? "✓ Submitted"
                     : "Submit All"}
               </button>
             </div>
 
-            {/* Status Grid */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {(
-                [
-                  {
-                    key: "custAccInfo",
-                    label: "Cust Acc Info",
-                    endpoint: "/bs-cust-acc-info",
-                  },
-                  {
-                    key: "balances",
-                    label: "Balances",
-                    endpoint: "/bs-balances",
-                  },
-                  { key: "summary", label: "Summary", endpoint: "/bs-summary" },
-                  {
-                    key: "transactions",
-                    label: `Transactions (${data.transactions?.length ?? 0})`,
-                    endpoint: "/bs-transactions",
-                  },
-                ] as {
-                  key: keyof SubmitStatus;
-                  label: string;
-                  endpoint: string;
-                }[]
-              ).map(({ key, label, endpoint }) => (
-                <div
-                  key={key}
-                  className={`rounded-lg border px-3 py-2.5 transition-colors
-                    ${
-                      submitStatus[key] === "success"
-                        ? "border-green-200 bg-green-50"
-                        : submitStatus[key] === "error"
-                          ? "border-red-200 bg-red-50"
-                          : submitStatus[key] === "loading"
-                            ? "border-blue-200 bg-blue-50"
-                            : "border-border bg-muted/30"
-                    }`}
-                >
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                      {label}
-                    </span>
-                    {statusIcon(submitStatus[key])}
-                  </div>
-                  <p className="truncate font-mono text-[10px] text-muted-foreground">
-                    {endpoint}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* ── Transaction upload progress bar ── */}
-            {submitStatus.transactions === "loading" &&
-              submitProgress.total > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[11px] text-muted-foreground">
-                    <span>Uploading transactions…</span>
-                    <span>
-                      {submitProgress.current} / {submitProgress.total}
-                    </span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-blue-500 transition-all duration-300"
-                      style={{
-                        width: `${(submitProgress.current / submitProgress.total) * 100}%`,
-                      }}
+            {/* Single endpoint status card */}
+            <div
+              className={`rounded-lg border px-4 py-3 flex items-center justify-between transition-colors
+              ${
+                submitDone
+                  ? "border-green-200 bg-green-50"
+                  : submitError
+                    ? "border-red-200 bg-red-50"
+                    : submitLoading
+                      ? "border-blue-200 bg-blue-50"
+                      : "border-border bg-muted/30"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {submitLoading ? (
+                  <svg
+                    className="h-4 w-4 animate-spin text-blue-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
                     />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Sending in batches of 10 with 300 ms pause between batches
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
+                  </svg>
+                ) : submitDone ? (
+                  <span className="text-green-600 text-base">✓</span>
+                ) : submitError ? (
+                  <span className="text-red-500 text-base">✗</span>
+                ) : (
+                  <span className="text-muted-foreground">○</span>
+                )}
+                <div>
+                  <p className="text-xs font-semibold text-foreground">
+                    POST /upload-bank-statement
+                  </p>
+                  <p className="text-[10px] font-mono text-muted-foreground">
+                    {API_BASE_URL}/upload-bank-statement
                   </p>
                 </div>
-              )}
+              </div>
+              <span
+                className={`text-[10px] font-medium px-2 py-0.5 rounded-full
+                ${
+                  submitDone
+                    ? "bg-green-100 text-green-700"
+                    : submitLoading
+                      ? "bg-blue-100 text-blue-700"
+                      : submitError
+                        ? "bg-red-100 text-red-600"
+                        : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {submitDone
+                  ? selectedTransactionNo
+                    ? "200 Updated"
+                    : "201 Created"
+                  : submitLoading
+                    ? "pending…"
+                    : submitError
+                      ? "error"
+                      : "idle"}
+              </span>
+            </div>
 
             {/* Submit error */}
             {submitError && (
@@ -1179,16 +1134,18 @@ export function BankStatement() {
             )}
 
             {/* Success banner */}
-            {submitDone && (
+            {submitDone && returnedTransactionNo && (
               <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
                 <span className="text-base">✓</span>
                 <div>
                   <p className="font-semibold">
-                    All data submitted successfully
+                    {selectedTransactionNo
+                      ? "Records updated successfully"
+                      : "New records created successfully"}
                   </p>
                   <p className="mt-0.5 text-green-600">
-                    Transaction #{transactionNumber} —{" "}
-                    {data.transactions?.length} transaction rows saved
+                    Transaction #{returnedTransactionNo} —{" "}
+                    {data?.transactions?.length} transaction rows saved
                   </p>
                 </div>
               </div>
