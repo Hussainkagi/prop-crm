@@ -6,6 +6,7 @@ import { BankStatement } from "@/components/settings/bankstatement";
 import { CreditScore } from "@/components/settings/creditscore";
 import { BankStatementRecords } from "@/components/settings/bankstatementrecords";
 import CustomerStatmentRecord from "@/components/settings/bankStatementByCust";
+import CreditScoreAnalyzer from "@/components/settings/creditScoreAnalyze";
 
 export default function StatementPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -26,6 +27,7 @@ export default function StatementPage() {
             <TabsTrigger value="history">User Credit Score</TabsTrigger>
             <TabsTrigger value="records">Bank Statement Records</TabsTrigger>
             <TabsTrigger value="customer">Customer Records</TabsTrigger>
+            <TabsTrigger value="creditscore">Credit Score Analysis</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -41,6 +43,9 @@ export default function StatementPage() {
           </TabsContent>
           <TabsContent value="customer" className="space-y-4">
             <CustomerStatmentRecord />
+          </TabsContent>
+          <TabsContent value="creditscore" className="space-y-4">
+            <CreditScoreAnalyzer />
           </TabsContent>
         </Tabs>
       </div>

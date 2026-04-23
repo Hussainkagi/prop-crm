@@ -5,56 +5,266 @@ import { useState, useRef, DragEvent, ChangeEvent } from "react";
 const CLAUDE_KEY = process.env.NEXT_PUBLIC_CLAUDE_KEY;
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
-interface CreditAccount {
-  accountType: string;
-  accountHolder: string;
-  accountNumber: string;
-  openDate: string;
-  status: string;
-  creditLimit?: number;
-  currentBalance: number;
-  paymentStatus: string;
-  lastPaymentDate?: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface AECBFullData {
+  // Personal Details
+  aecbPersonalDetailsModel: {
+    Customer_ID: string;
+    CB_Subject_Id: string;
+    Title: string;
+    Last_Name: string;
+    First_Name: string;
+    Full_Name: string;
+    Gender: string;
+    Self_Provided: string;
+    Date_of_Birth: string;
+    Resident: string;
+    Nationality: string;
+    Credit_Score: number;
+    Rating: string;
+  };
+
+  // Contact Details (array)
+  aecbContactDetailsModel: Array<{
+    Contact_Details: string;
+    Contact_Type: string;
+    Contact: number;
+    Provider: string;
+    Active: string;
+  }>;
+
+  // Address Details (array)
+  aecbAddressDetailsModel: Array<{
+    Address_Type: string;
+    Address: string;
+    Emirate: string;
+    P_O_Box: number;
+    Plot_No: number;
+    Provider: string;
+    Active: string;
+  }>;
+
+  // Per-Ident Details (array)
+  aecbPerIdentDetailsModel: Array<{
+    Table_Sequence_ID: number;
+    Type: string;
+    Number: number;
+    Expiry_Date: string;
+    Provider: string;
+  }>;
+
+  // Employment Details (array)
+  aecbEmploymentDetailsModel: Array<{
+    Table_Sequence_ID: number;
+    Employment: string;
+    Employer_Name: string;
+    Gross_Annual_Income: number;
+    Provider: string;
+    Active: string;
+    Date_Of_Last_Update: string;
+  }>;
+
+  // Salary Credits (array)
+  aecbSalaryCreditsModel: Array<{
+    Account_Type: string;
+    Phase: string;
+    IBAN: string;
+    Provider_Description: string;
+    Start_Date: string;
+    Closed_Date: string;
+    Date_Of_Last_Update: string;
+  }>;
+
+  // Salary History (array)
+  aecbSalaryHistoryModel: Array<{
+    Year: string;
+    Month: string;
+    Salary_Amount: number;
+  }>;
+
+  // Total Credit Summary (array)
+  aecbTotalCreditSummaryModel: Array<{
+    Table_Sequence_ID: number;
+    total_exposure: number;
+    credit_util_on_CC_pct: number;
+    oldest_active_cont_SD: string;
+    newest_contract_SD: string;
+    total_outstanding: number;
+    total_overdue: number;
+    no_of_default_contracts: number;
+    total_outstanding_telecom_utility: number;
+  }>;
+
+  // OV Credit Facilities (array)
+  aecbOVCreditFacilitiesModel: Array<{
+    Table_Sequence_ID: number;
+    Credit_Facility_type: string;
+    no_of_active_contracts: number;
+    account_holder_type: string;
+    total_payment_amount: number;
+    total_OS_balance_amount: number;
+    total_overdue_amount: number;
+  }>;
+
+  // Return Cheque (array)
+  aecbReturnChequeModel: Array<{
+    Table_Sequence_ID: number;
+    IBAN: string;
+    Cheque_Number: number;
+    Amount: number;
+    Reason: string;
+    Return_Date: string;
+    Severity: string;
+    Cheque_Status: string;
+    Settlement_Date: string;
+    Provider: string;
+  }>;
+
+  // Company Links (array)
+  aecbCompanyLinksModel: Array<{
+    Table_Sequence_ID: number;
+    link_type: string;
+    subject: string;
+    shareholder_percentage: string;
+    provider: string;
+  }>;
+
+  // Credit Telco App (array)
+  aecbCreditTelcoAppModel: Array<{
+    Table_Sequence_ID: number;
+    Application_Type: string;
+    Application_in_180_days: number;
+    total_no_reporting: number;
+  }>;
+
+  // Credit Facilities (array)
+  aecbCreditFacilitiesModel: Array<{
+    Table_Sequence_ID: number;
+    type_of_contract: string;
+    phase: string;
+    role: string;
+    start_date: string;
+    date_last_updated: string;
+    dp_contract_no: string;
+  }>;
+
+  // Credit Facility Details (array)
+  aecbCreditFacilitiesDetailsModel: Array<{
+    Table_Sequence_ID: number;
+    provider: string;
+    outstanding_balance: number;
+    total_amount: number;
+    total_no_of_instalments: number;
+    no_of_remaining_instalments: number;
+    payments_frequency: string;
+    payment_amount: number;
+    start_date: string;
+    closed_date: string;
+    islamic_contract_flag: string;
+    secured_contract_flag: string;
+    funded_contract_flag: string;
+    overdue_amount: number;
+    worst_status: string;
+    worst_status_date: string;
+    security: string;
+  }>;
+
+  // Credit Facility History (array)
+  aecbCreditFacilitiesHistoryModel: Array<{
+    Table_Sequence_ID: number;
+    year: number;
+    month: number;
+    total_amount: number;
+    payment_amount: number;
+    outstanding_balance: number;
+    status: string;
+  }>;
+
+  // Credit Card Facilities (array)
+  aecbCreditCardFacilitiesModel: Array<{
+    Table_Sequence_ID: number;
+    type_of_contract: string;
+    phase: string;
+    role: string;
+    start_date: string;
+    date_last_updated: string;
+    dp_contract_no: string;
+  }>;
+
+  // Credit Card Facility Details (array)
+  aecbCreditCardFacilitiesDetailsModel: Array<{
+    Table_Sequence_ID: number;
+    provider: string;
+    balance: number;
+    credit_limit: number;
+    amount_spent_till_date: number;
+    overdue_amount: number;
+    no_of_days_of_payment_delay: number;
+    start_date: string;
+    closed_date: string;
+    card_used_flag: string;
+    islamic_contract_flag: string;
+    secured_contract_flag: string;
+    funded_contract_flag: string;
+    payment_due_date: string;
+    statement_due_amount: number;
+    actual_payment_amount: number;
+    worst_status: string;
+    worst_status_date: string;
+    security: string;
+  }>;
+
+  // Credit Card Facility History (array)
+  aecbCreditCardFacilitiesHistoryModel: Array<{
+    Table_Sequence_ID: number;
+    year: number;
+    month: number;
+    utilization_rate_pct: number;
+    outstanding_balance: number;
+    status: string;
+  }>;
+
+  // Telecom Facilities (array)
+  aecbTelecomFacilitiesModel: Array<{
+    Table_Sequence_ID: number;
+    type_of_contract: string;
+    phase: string;
+    role: string;
+    start_date: string;
+    date_last_updated: string;
+    dp_contract_no: string;
+  }>;
+
+  // Telecom Facility Details (array)
+  aecbTelecomFacilitiesDetailsModel: Array<{
+    Table_Sequence_ID: number;
+    provider: string;
+    communication_type: string;
+    no_of_mobile_services: number;
+    no_of_fixed_line_services: number;
+    no_of_other_services: number;
+    start_date: string;
+    closed_date: string;
+    holder_is_not_liable_flag: string;
+    funded_contract_flag: string;
+    worst_status: string;
+    worst_status_date: string;
+  }>;
+
+  // Telecom Facility History (array)
+  aecbTelecomFacilitiesHistoryModel: Array<{
+    Table_Sequence_ID: number;
+    year: number;
+    month: number;
+    billed: number;
+    outstanding_balance: number;
+    overdue: number;
+    status: string;
+  }>;
 }
 
-interface CreditScore {
-  score: number;
-  rating: "Excellent" | "Good" | "Fair" | "Poor" | "Very Poor";
-  scoreRange: string;
-}
-
-interface CreditReportData {
-  consumerName: string;
-  dateOfBirth?: string;
-  address: string;
-  reportDate: string;
-  reportNumber?: string;
-  creditScore: CreditScore;
-  accounts: CreditAccount[];
-  totalDebt: number;
-  totalCreditLimit: number;
-  creditUtilization: number;
-  paymentHistory: Array<{ date: string; status: string; account: string }>;
-  publicRecords: Array<{ type: string; date: string; details: string }>;
-  inquiries: Array<{ date: string; creditor: string; type: string }>;
-  delinquencies: Array<{
-    account: string;
-    status: string;
-    daysLate: number;
-    amount: number;
-  }>;
-  bankruptcies?: Array<{ type: string; date: string; details: string }>;
-  chargeOffs?: Array<{ creditor: string; date: string; amount: number }>;
-  collections?: Array<{
-    creditor: string;
-    date: string;
-    amount: number;
-    status: string;
-  }>;
-  latePayments?: Array<{ creditor: string; date: string; daysLate: number }>;
-  recommendations: string[];
-  summaryNotes?: string;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -65,457 +275,497 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-const SYSTEM_PROMPT = `You are a comprehensive credit report analyzer AI. When given a credit report PDF (potentially 17+ pages), extract and return ONLY a valid JSON object (no markdown, no explanation) with ALL available information in this exact structure:
-
-{
-  "consumerName": "string",
-  "dateOfBirth": "string (YYYY-MM-DD) or null",
-  "address": "string",
-  "reportDate": "string (YYYY-MM-DD)",
-  "reportNumber": "string or null",
-  "creditScore": {
-    "score": number (300-850),
-    "rating": "Excellent|Good|Fair|Poor|Very Poor",
-    "scoreRange": "string"
-  },
-  "accounts": [
-    {
-      "accountType": "string (Credit Card, Mortgage, Auto Loan, etc.)",
-      "accountHolder": "string",
-      "accountNumber": "string",
-      "openDate": "string (YYYY-MM-DD)",
-      "status": "Active|Closed|Delinquent",
-      "creditLimit": number or null,
-      "currentBalance": number,
-      "paymentStatus": "Current|30 days late|60 days late|90+ days late",
-      "lastPaymentDate": "string (YYYY-MM-DD) or null"
-    }
-  ],
-  "totalDebt": number,
-  "totalCreditLimit": number,
-  "creditUtilization": number (0-100),
-  "paymentHistory": [
-    {
-      "date": "string (YYYY-MM-DD)",
-      "status": "string",
-      "account": "string"
-    }
-  ],
-  "publicRecords": [
-    {
-      "type": "string (Judgment, Lien, Bankruptcy, etc.)",
-      "date": "string (YYYY-MM-DD)",
-      "details": "string"
-    }
-  ],
-  "inquiries": [
-    {
-      "date": "string (YYYY-MM-DD)",
-      "creditor": "string",
-      "type": "Hard|Soft"
-    }
-  ],
-  "delinquencies": [
-    {
-      "account": "string",
-      "status": "string",
-      "daysLate": number,
-      "amount": number
-    }
-  ],
-  "bankruptcies": [
-    {
-      "type": "Chapter 7|Chapter 13|etc",
-      "date": "string (YYYY-MM-DD)",
-      "details": "string"
-    }
-  ],
-  "chargeOffs": [
-    {
-      "creditor": "string",
-      "date": "string (YYYY-MM-DD)",
-      "amount": number
-    }
-  ],
-  "collections": [
-    {
-      "creditor": "string",
-      "date": "string (YYYY-MM-DD)",
-      "amount": number,
-      "status": "string"
-    }
-  ],
-  "latePayments": [
-    {
-      "creditor": "string",
-      "date": "string (YYYY-MM-DD)",
-      "daysLate": number
-    }
-  ],
-  "recommendations": ["string"],
-  "summaryNotes": "string or null"
-}`;
-
-const ratingTextColor = (r: string) => {
-  const map: Record<string, string> = {
-    Excellent: "text-green-600",
-    Good: "text-lime-600",
-    Fair: "text-amber-500",
-    Poor: "text-orange-500",
-    "Very Poor": "text-red-500",
-  };
-  return map[r] ?? "text-muted-foreground";
-};
-
-const ratingHex = (r: string) => {
-  const map: Record<string, string> = {
+const ratingHex = (r: string) =>
+  ({
     Excellent: "#16a34a",
     Good: "#65a30d",
     Fair: "#f59e0b",
     Poor: "#f97316",
     "Very Poor": "#ef4444",
-  };
-  return map[r] ?? "#94a3b8";
+  })[r] ?? "#94a3b8";
+
+const ratingTextColor = (r: string) =>
+  ({
+    Excellent: "text-green-600",
+    Good: "text-lime-600",
+    Fair: "text-amber-500",
+    Poor: "text-orange-500",
+    "Very Poor": "text-red-500",
+  })[r] ?? "text-muted-foreground";
+
+const safeNum = (v: unknown, fallback = 0): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
 };
 
-const statusBadge = (status: string) => {
-  const map: Record<string, string> = {
-    Active: "bg-green-100 text-green-700",
-    Closed: "bg-gray-100 text-gray-700",
-    Delinquent: "bg-red-100 text-red-700",
-    Current: "bg-green-100 text-green-700",
-    "30 days late": "bg-yellow-100 text-yellow-700",
-    "60 days late": "bg-orange-100 text-orange-700",
-    "90+ days late": "bg-red-100 text-red-700",
-  };
-  return map[status] ?? "bg-muted text-muted-foreground";
+const today = () => new Date().toISOString().slice(0, 10);
+const farFuture = "2099-12-31";
+
+// ─── System Prompt ────────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are an expert credit bureau report analyzer for UAE AECB (Al Etihad Credit Bureau) reports.
+Given a full AECB credit report PDF (which may be 25+ pages), extract EVERY piece of data and return ONLY a valid JSON object matching EXACTLY this structure. No markdown, no explanation, no code fences.
+
+Return this exact JSON shape:
+
+{
+  "aecbPersonalDetailsModel": {
+    "Customer_ID": "string (use CB Subject ID or generate as CUST-XXXXX)",
+    "CB_Subject_Id": "string",
+    "Title": "string (Mr/Mrs/Ms/Dr or empty)",
+    "Last_Name": "string",
+    "First_Name": "string",
+    "Full_Name": "string",
+    "Gender": "string (M/F)",
+    "Self_Provided": "string (Y/N)",
+    "Date_of_Birth": "YYYY-MM-DD",
+    "Resident": "string (Y/N)",
+    "Nationality": "string (2-letter ISO country code e.g. AE, IN, PK)",
+    "Credit_Score": number,
+    "Rating": "string (Excellent/Good/Fair/Poor/Very Poor)"
+  },
+  "aecbContactDetailsModel": [
+    {
+      "Contact_Details": "string (phone number or email)",
+      "Contact_Type": "string (Mobile/Email/Office/Home)",
+      "Contact": number (numeric digits only from phone, 0 if email),
+      "Provider": "string (Etisalat/Du/Unknown)",
+      "Active": "string (Y/N)"
+    }
+  ],
+  "aecbAddressDetailsModel": [
+    {
+      "Address_Type": "string (Residential/Work/Mailing)",
+      "Address": "string",
+      "Emirate": "string (Dubai/Abu Dhabi/Sharjah/etc)",
+      "P_O_Box": number,
+      "Plot_No": number,
+      "Provider": "string",
+      "Active": "string (Y/N)"
+    }
+  ],
+  "aecbPerIdentDetailsModel": [
+    {
+      "Table_Sequence_ID": number (1-based index),
+      "Type": "string (Emirates ID/Passport/Visa)",
+      "Number": number (numeric part only),
+      "Expiry_Date": "YYYY-MM-DD",
+      "Provider": "string"
+    }
+  ],
+  "aecbEmploymentDetailsModel": [
+    {
+      "Table_Sequence_ID": number (1-based),
+      "Employment": "string (Employed/Self-Employed/Unemployed)",
+      "Employer_Name": "string",
+      "Gross_Annual_Income": number,
+      "Provider": "string",
+      "Active": "string (Y/N)",
+      "Date_Of_Last_Update": "YYYY-MM-DD"
+    }
+  ],
+  "aecbSalaryCreditsModel": [
+    {
+      "Account_Type": "string (Current/Savings)",
+      "Phase": "string (Open/Closed)",
+      "IBAN": "string",
+      "Provider_Description": "string (bank name)",
+      "Start_Date": "YYYY-MM-DD",
+      "Closed_Date": "YYYY-MM-DD",
+      "Date_Of_Last_Update": "YYYY-MM-DD"
+    }
+  ],
+  "aecbSalaryHistoryModel": [
+    {
+      "Year": "string (YYYY)",
+      "Month": "string (01-12 or month name)",
+      "Salary_Amount": number
+    }
+  ],
+  "aecbTotalCreditSummaryModel": [
+    {
+      "Table_Sequence_ID": number,
+      "total_exposure": number,
+      "credit_util_on_CC_pct": number (0-100),
+      "oldest_active_cont_SD": "YYYY-MM-DD",
+      "newest_contract_SD": "YYYY-MM-DD",
+      "total_outstanding": number,
+      "total_overdue": number,
+      "no_of_default_contracts": number,
+      "total_outstanding_telecom_utility": number
+    }
+  ],
+  "aecbOVCreditFacilitiesModel": [
+    {
+      "Table_Sequence_ID": number (1-based),
+      "Credit_Facility_type": "string (Personal Loan/Mortgage/Auto Loan/Credit Card/Overdraft/etc)",
+      "no_of_active_contracts": number,
+      "account_holder_type": "string (Primary/Joint/Guarantor)",
+      "total_payment_amount": number,
+      "total_OS_balance_amount": number,
+      "total_overdue_amount": number
+    }
+  ],
+  "aecbReturnChequeModel": [
+    {
+      "Table_Sequence_ID": number (1-based),
+      "IBAN": "string",
+      "Cheque_Number": number,
+      "Amount": number,
+      "Reason": "string",
+      "Return_Date": "YYYY-MM-DD",
+      "Severity": "string (Low/Medium/High)",
+      "Cheque_Status": "string (Returned/Settled/Pending)",
+      "Settlement_Date": "YYYY-MM-DD",
+      "Provider": "string"
+    }
+  ],
+  "aecbCompanyLinksModel": [
+    {
+      "Table_Sequence_ID": number (1-based),
+      "link_type": "string (Director/Shareholder/Owner)",
+      "subject": "string (company name)",
+      "shareholder_percentage": "string (e.g. 25%)",
+      "provider": "string"
+    }
+  ],
+  "aecbCreditTelcoAppModel": [
+    {
+      "Table_Sequence_ID": number (1-based),
+      "Application_Type": "string (Credit/Telecom)",
+      "Application_in_180_days": number,
+      "total_no_reporting": number
+    }
+  ],
+  "aecbCreditFacilitiesModel": [
+    {
+      "Table_Sequence_ID": number (1-based sequential for each facility),
+      "type_of_contract": "string (Personal Loan/Home Loan/Auto Loan/Business Loan/etc)",
+      "phase": "string (Open/Closed/Written-Off/Default)",
+      "role": "string (Primary/Co-borrower/Guarantor)",
+      "start_date": "YYYY-MM-DD",
+      "date_last_updated": "YYYY-MM-DD",
+      "dp_contract_no": "string"
+    }
+  ],
+  "aecbCreditFacilitiesDetailsModel": [
+    {
+      "Table_Sequence_ID": number (matching parent facility),
+      "provider": "string (bank/institution name)",
+      "outstanding_balance": number,
+      "total_amount": number,
+      "total_no_of_instalments": number,
+      "no_of_remaining_instalments": number,
+      "payments_frequency": "string (Monthly/Weekly/Quarterly)",
+      "payment_amount": number,
+      "start_date": "YYYY-MM-DD",
+      "closed_date": "YYYY-MM-DD",
+      "islamic_contract_flag": "string (Y/N)",
+      "secured_contract_flag": "string (Y/N)",
+      "funded_contract_flag": "string (Y/N)",
+      "overdue_amount": number,
+      "worst_status": "string (Current/1-29 Days/30-59 Days/60-89 Days/90+ Days/Write-Off)",
+      "worst_status_date": "YYYY-MM-DD",
+      "security": "string (None/Property/Vehicle/Cash/Other)"
+    }
+  ],
+  "aecbCreditFacilitiesHistoryModel": [
+    {
+      "Table_Sequence_ID": number (matching parent facility),
+      "year": number,
+      "month": number (1-12),
+      "total_amount": number,
+      "payment_amount": number,
+      "outstanding_balance": number,
+      "status": "string (Current/Late/Default/etc)"
+    }
+  ],
+  "aecbCreditCardFacilitiesModel": [
+    {
+      "Table_Sequence_ID": number (1-based, separate sequence from credit facilities),
+      "type_of_contract": "string (Credit Card/Charge Card)",
+      "phase": "string (Open/Closed)",
+      "role": "string (Primary/Supplementary)",
+      "start_date": "YYYY-MM-DD",
+      "date_last_updated": "YYYY-MM-DD",
+      "dp_contract_no": "string"
+    }
+  ],
+  "aecbCreditCardFacilitiesDetailsModel": [
+    {
+      "Table_Sequence_ID": number (matching parent card),
+      "provider": "string",
+      "balance": number,
+      "credit_limit": number,
+      "amount_spent_till_date": number,
+      "overdue_amount": number,
+      "no_of_days_of_payment_delay": number,
+      "start_date": "YYYY-MM-DD",
+      "closed_date": "YYYY-MM-DD",
+      "card_used_flag": "string (Y/N)",
+      "islamic_contract_flag": "string (Y/N)",
+      "secured_contract_flag": "string (Y/N)",
+      "funded_contract_flag": "string (Y/N)",
+      "payment_due_date": "string (YYYY-MM-DD or day of month)",
+      "statement_due_amount": number,
+      "actual_payment_amount": number,
+      "worst_status": "string",
+      "worst_status_date": "YYYY-MM-DD",
+      "security": "string"
+    }
+  ],
+  "aecbCreditCardFacilitiesHistoryModel": [
+    {
+      "Table_Sequence_ID": number (matching parent card),
+      "year": number,
+      "month": number (1-12),
+      "utilization_rate_pct": number (0-100),
+      "outstanding_balance": number,
+      "status": "string"
+    }
+  ],
+  "aecbTelecomFacilitiesModel": [
+    {
+      "Table_Sequence_ID": number (1-based),
+      "type_of_contract": "string (Postpaid/Prepaid/Broadband/etc)",
+      "phase": "string (Open/Closed)",
+      "role": "string (Primary/Secondary)",
+      "start_date": "YYYY-MM-DD",
+      "date_last_updated": "YYYY-MM-DD",
+      "dp_contract_no": "string"
+    }
+  ],
+  "aecbTelecomFacilitiesDetailsModel": [
+    {
+      "Table_Sequence_ID": number (matching parent telecom),
+      "provider": "string (Etisalat/Du/Virgin Mobile/etc)",
+      "communication_type": "string (Mobile/Fixed Line/Broadband/etc)",
+      "no_of_mobile_services": number,
+      "no_of_fixed_line_services": number,
+      "no_of_other_services": number,
+      "start_date": "YYYY-MM-DD",
+      "closed_date": "YYYY-MM-DD",
+      "holder_is_not_liable_flag": "string (Y/N)",
+      "funded_contract_flag": "string (Y/N)",
+      "worst_status": "string",
+      "worst_status_date": "YYYY-MM-DD"
+    }
+  ],
+  "aecbTelecomFacilitiesHistoryModel": [
+    {
+      "Table_Sequence_ID": number (matching parent telecom),
+      "year": number,
+      "month": number (1-12),
+      "billed": number,
+      "outstanding_balance": number,
+      "overdue": number,
+      "status": "string"
+    }
+  ]
+}
+
+CRITICAL RULES:
+- Extract EVERY record from EVERY page. Do not skip any facility, card, loan, or history row.
+- For missing/unavailable fields use sensible defaults: 0 for numbers, "N" for flags, "Unknown" for providers, today's date or "2099-12-31" for future dates.
+- All dates must be YYYY-MM-DD format.
+- All numeric fields must be numbers (not strings).
+- Table_Sequence_ID must be sequential integers starting at 1 within each table grouping.
+- Rating must be: Excellent (750-850), Good (700-749), Fair (650-699), Poor (600-649), Very Poor (300-599).
+- For Gender: infer from title/name if not explicitly stated.
+- Return ONLY the JSON object. No text before or after.`;
+
+// ─── Table metadata for preview ──────────────────────────────────────────────
+
+const TABLE_META: Array<{
+  key: keyof AECBFullData;
+  label: string;
+  icon: string;
+  color: string;
+}> = [
+  {
+    key: "aecbPersonalDetailsModel",
+    label: "Personal Details",
+    icon: "👤",
+    color: "blue",
+  },
+  {
+    key: "aecbContactDetailsModel",
+    label: "Contact Details",
+    icon: "📞",
+    color: "purple",
+  },
+  {
+    key: "aecbAddressDetailsModel",
+    label: "Address Details",
+    icon: "🏠",
+    color: "green",
+  },
+  {
+    key: "aecbPerIdentDetailsModel",
+    label: "ID Documents",
+    icon: "🪪",
+    color: "indigo",
+  },
+  {
+    key: "aecbEmploymentDetailsModel",
+    label: "Employment Details",
+    icon: "💼",
+    color: "amber",
+  },
+  {
+    key: "aecbSalaryCreditsModel",
+    label: "Salary Credits",
+    icon: "💰",
+    color: "emerald",
+  },
+  {
+    key: "aecbSalaryHistoryModel",
+    label: "Salary History",
+    icon: "📈",
+    color: "teal",
+  },
+  {
+    key: "aecbTotalCreditSummaryModel",
+    label: "Total Credit Summary",
+    icon: "📊",
+    color: "blue",
+  },
+  {
+    key: "aecbOVCreditFacilitiesModel",
+    label: "OV Credit Facilities",
+    icon: "🏦",
+    color: "violet",
+  },
+  {
+    key: "aecbReturnChequeModel",
+    label: "Return Cheques",
+    icon: "🪙",
+    color: "red",
+  },
+  {
+    key: "aecbCompanyLinksModel",
+    label: "Company Links",
+    icon: "🏢",
+    color: "slate",
+  },
+  {
+    key: "aecbCreditTelcoAppModel",
+    label: "Credit Telco App",
+    icon: "📱",
+    color: "cyan",
+  },
+  {
+    key: "aecbCreditFacilitiesModel",
+    label: "Credit Facilities",
+    icon: "🏛️",
+    color: "orange",
+  },
+  {
+    key: "aecbCreditFacilitiesDetailsModel",
+    label: "Credit Facility Details",
+    icon: "📋",
+    color: "orange",
+  },
+  {
+    key: "aecbCreditFacilitiesHistoryModel",
+    label: "Credit Facility History",
+    icon: "📅",
+    color: "amber",
+  },
+  {
+    key: "aecbCreditCardFacilitiesModel",
+    label: "Credit Card Facilities",
+    icon: "💳",
+    color: "rose",
+  },
+  {
+    key: "aecbCreditCardFacilitiesDetailsModel",
+    label: "Credit Card Details",
+    icon: "🗂️",
+    color: "rose",
+  },
+  {
+    key: "aecbCreditCardFacilitiesHistoryModel",
+    label: "Credit Card History",
+    icon: "📅",
+    color: "pink",
+  },
+  {
+    key: "aecbTelecomFacilitiesModel",
+    label: "Telecom Facilities",
+    icon: "📡",
+    color: "sky",
+  },
+  {
+    key: "aecbTelecomFacilitiesDetailsModel",
+    label: "Telecom Details",
+    icon: "📶",
+    color: "sky",
+  },
+  {
+    key: "aecbTelecomFacilitiesHistoryModel",
+    label: "Telecom History",
+    icon: "📅",
+    color: "blue",
+  },
+];
+
+const COLOR_MAP: Record<string, string> = {
+  blue: "bg-blue-100 text-blue-700 border-blue-200",
+  purple: "bg-purple-100 text-purple-700 border-purple-200",
+  green: "bg-green-100 text-green-700 border-green-200",
+  indigo: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  amber: "bg-amber-100 text-amber-700 border-amber-200",
+  emerald: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  teal: "bg-teal-100 text-teal-700 border-teal-200",
+  violet: "bg-violet-100 text-violet-700 border-violet-200",
+  red: "bg-red-100 text-red-700 border-red-200",
+  slate: "bg-slate-100 text-slate-700 border-slate-200",
+  cyan: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  orange: "bg-orange-100 text-orange-700 border-orange-200",
+  rose: "bg-rose-100 text-rose-700 border-rose-200",
+  pink: "bg-pink-100 text-pink-700 border-pink-200",
+  sky: "bg-sky-100 text-sky-700 border-sky-200",
 };
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function CreditScore() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [aecbSyncing, setAecbSyncing] = useState(false);
-  const [data, setData] = useState<CreditReportData | null>(null);
+  const [loadingStage, setLoadingStage] = useState("");
+  const [data, setData] = useState<AECBFullData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
-  const [transactionNumber, setTransactionNumber] = useState<string | null>(
-    null,
-  );
-  const [preparedRequests, setPreparedRequests] = useState<
-    Array<{ endpoint: string; body: Record<string, unknown> }>
-  >([]);
   const [dragOver, setDragOver] = useState(false);
+  const [expandedTable, setExpandedTable] = useState<string | null>(
+    "aecbPersonalDetailsModel",
+  );
+
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStage, setSubmitStage] = useState("");
+  const [submitDone, setSubmitDone] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [returnedTxnNo, setReturnedTxnNo] = useState<number | null>(null);
+
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("crm_access_token") || "";
-    return {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  };
-
-  const extractApiData = (payload: unknown): unknown[] => {
-    if (!payload || typeof payload !== "object") return [];
-    const obj = payload as { data?: unknown };
-    if (Array.isArray(obj.data)) return obj.data;
-    if (obj.data && typeof obj.data === "object") return [obj.data];
-    return [];
-  };
-
-  const postAecbRecord = async (
-    endpoint: string,
-    body: Record<string, unknown>,
-  ): Promise<{ ok: boolean; message?: string }> => {
-    const res = await fetch(`${BASE_URL}/aecb/${endpoint}`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const err = await res
-        .json()
-        .catch(() => ({ message: `Failed posting ${endpoint}` }));
-      return {
-        ok: false,
-        message:
-          (err as { message?: string }).message || `Failed posting ${endpoint}`,
-      };
-    }
-    return { ok: true };
-  };
-
-  const getAecbByTransaction = async (endpoint: string, txn: string) => {
-    const res = await fetch(
-      `${BASE_URL}/aecb/${endpoint}/transaction/${encodeURIComponent(txn)}`,
-      {
-        method: "GET",
-        headers: getAuthHeaders(),
-      },
-    );
-    if (!res.ok) return [];
-    const payload = await res.json().catch(() => ({}));
-    return extractApiData(payload) as Record<string, unknown>[];
-  };
-
-  const splitName = (fullName: string) => {
-    const parts = (fullName || "").trim().split(/\s+/);
-    return {
-      firstName: parts[0] || "",
-      lastName: parts.slice(1).join(" ") || "",
-    };
-  };
-
-  const toSafeNumber = (value: unknown, fallback = 0): number => {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : fallback;
-  };
-
-  const INT32_MAX = 2147483647;
-
-  const resolveTransactionNumber = (raw?: string): number => {
-    const digits = (raw || "").replace(/\D/g, "");
-
-    // Keep Transaction_Number strictly within PostgreSQL int4 range.
-    if (digits.length > 0) {
-      const maybe = Number.parseInt(digits.slice(-9), 10);
-      if (Number.isFinite(maybe) && maybe > 0 && maybe <= INT32_MAX) {
-        return maybe;
-      }
-    }
-
-    // epoch seconds fits in int4 for current dates (~1.7b)
-    const epochSeconds = Math.floor(Date.now() / 1000);
-    return Math.min(Math.max(epochSeconds, 1), INT32_MAX);
-  };
-
-  const buildAecbRequests = (
-    parsed: CreditReportData,
-    txnNumber: number,
-  ): Array<{ endpoint: string; body: Record<string, unknown> }> => {
-    const { firstName, lastName } = splitName(parsed.consumerName);
-    const primaryEmail =
-      parsed.inquiries?.[0]?.creditor
-        ?.toLowerCase()
-        .replace(/\s+/g, "")
-        .concat("@mail.com") || "customer@mail.com";
-
-    const requests: Array<{ endpoint: string; body: Record<string, unknown> }> =
-      [
-        {
-          endpoint: "personal-details",
-          body: {
-            Transaction_Number: txnNumber,
-            First_Name: firstName,
-            Last_Name: lastName,
-            Date_of_Birth: parsed.dateOfBirth || "1990-01-01",
-            Gender: "M",
-            Nationality: "SA",
-            Email: primaryEmail,
-            Phone: "0500000000",
-          },
-        },
-        {
-          endpoint: "contact-details",
-          body: {
-            Transaction_Number: txnNumber,
-            Mobile_Number: "0500000000",
-            Alternate_Mobile: "0500000001",
-            Email: primaryEmail,
-            Office_Phone: "0110000000",
-            Contact_Type: "Personal",
-          },
-        },
-        {
-          endpoint: "address-details",
-          body: {
-            Transaction_Number: txnNumber,
-            Street_Address: parsed.address || "Unknown",
-            City: parsed.address?.split(",")?.[0]?.trim() || "Unknown",
-            Region: parsed.address?.split(",")?.[1]?.trim() || "Unknown",
-            Postal_Code: "00000",
-            Country: "SA",
-            Address_Type: "Residential",
-          },
-        },
-        {
-          endpoint: "total-credit-summary",
-          body: {
-            Transaction_Number: txnNumber,
-            Total_Credit_Limit: String(toSafeNumber(parsed.totalCreditLimit)),
-            Total_Used: String(toSafeNumber(parsed.totalDebt)),
-            Available_Credit: String(
-              Math.max(
-                0,
-                toSafeNumber(parsed.totalCreditLimit) -
-                  toSafeNumber(parsed.totalDebt),
-              ),
-            ),
-            Payment_Status: parsed.creditScore.rating,
-          },
-        },
-      ];
-
-    const creditFacilities = parsed.accounts.filter(
-      (a) => !a.accountType.toLowerCase().includes("card"),
-    );
-    for (const a of creditFacilities) {
-      requests.push({
-        endpoint: "credit-facilities",
-        body: {
-          Transaction_Number: txnNumber,
-          Facility_Type: a.accountType,
-          Bank_Name: a.accountHolder || "Unknown",
-          Sanctioned_Amount: String(
-            toSafeNumber(a.creditLimit ?? a.currentBalance),
-          ),
-          Outstanding_Amount: String(toSafeNumber(a.currentBalance)),
-          Status: a.status,
-        },
-      });
-    }
-
-    const cardFacilities = parsed.accounts.filter((a) =>
-      a.accountType.toLowerCase().includes("card"),
-    );
-    for (const a of cardFacilities) {
-      requests.push({
-        endpoint: "credit-card-facilities",
-        body: {
-          Transaction_Number: txnNumber,
-          Card_Number: a.accountNumber || "XXXX-XXXX-XXXX-0000",
-          Bank_Name: a.accountHolder || "Unknown",
-          Credit_Limit: String(toSafeNumber(a.creditLimit)),
-          Outstanding_Balance: String(toSafeNumber(a.currentBalance)),
-          Card_Status: a.status,
-        },
-      });
-    }
-
-    for (const d of parsed.delinquencies || []) {
-      requests.push({
-        endpoint: "return-cheque",
-        body: {
-          Transaction_Number: txnNumber,
-          Cheque_Number: d.account || "UNKNOWN",
-          Amount: String(toSafeNumber(d.amount)),
-          Bank_Name: "Unknown",
-          Return_Reason: d.status || "Late",
-          Return_Date: parsed.reportDate || "2026-01-01",
-        },
-      });
-    }
-
-    return requests;
-  };
-
-  const syncAecbAndHydrate = async (parsed: CreditReportData, txn: string) => {
-    if (!BASE_URL) return parsed;
-    setAecbSyncing(true);
-
-    try {
-      const failures: string[] = [];
-      for (const req of preparedRequests) {
-        const response = await postAecbRecord(req.endpoint, req.body);
-        if (!response.ok) {
-          failures.push(`${req.endpoint}: ${response.message || "failed"}`);
-        }
-      }
-
-      if (failures.length > 0) {
-        setUploadMessage(`Uploaded with ${failures.length} issues.`);
-      } else {
-        setUploadMessage("All AECB API payloads uploaded successfully.");
-      }
-
-      const [
-        personalRows,
-        addressRows,
-        summaryRows,
-        facilityRows,
-        cardRows,
-        rcRows,
-      ] = await Promise.all([
-        getAecbByTransaction("personal-details", txn),
-        getAecbByTransaction("address-details", txn),
-        getAecbByTransaction("total-credit-summary", txn),
-        getAecbByTransaction("credit-facilities", txn),
-        getAecbByTransaction("credit-card-facilities", txn),
-        getAecbByTransaction("return-cheque", txn),
-      ]);
-
-      const personal = personalRows[0];
-      const address = addressRows[0];
-      const summary = summaryRows[0];
-
-      const mergedAccounts: CreditAccount[] = [
-        ...facilityRows.map((row) => ({
-          accountType: String(row.Facility_Type || "Facility"),
-          accountHolder: String(row.Bank_Name || "Unknown"),
-          accountNumber: String(row.Facility_Number || row.id || "N/A"),
-          openDate: parsed.reportDate,
-          status: String(row.Status || "Active"),
-          creditLimit: Number(row.Sanctioned_Amount || 0),
-          currentBalance: Number(row.Outstanding_Amount || 0),
-          paymentStatus: String(row.Status || "Current"),
-        })),
-        ...cardRows.map((row) => ({
-          accountType: "Credit Card",
-          accountHolder: String(row.Bank_Name || "Unknown"),
-          accountNumber: String(row.Card_Number || "XXXX"),
-          openDate: parsed.reportDate,
-          status: String(row.Card_Status || "Active"),
-          creditLimit: Number(row.Credit_Limit || 0),
-          currentBalance: Number(row.Outstanding_Balance || 0),
-          paymentStatus: String(row.Card_Status || "Current"),
-        })),
-      ];
-
-      const mergedDelinquencies = rcRows.map((row) => ({
-        account: String(row.Cheque_Number || "Unknown"),
-        status: String(row.Return_Reason || "Late"),
-        daysLate: 30,
-        amount: Number(row.Amount || 0),
-      }));
-
-      return {
-        ...parsed,
-        consumerName:
-          personal && (personal.First_Name || personal.Last_Name)
-            ? `${String(personal.First_Name || "")} ${String(personal.Last_Name || "")}`.trim()
-            : parsed.consumerName,
-        address: address
-          ? String(address.Street_Address || parsed.address)
-          : parsed.address,
-        totalCreditLimit: summary
-          ? Number(summary.Total_Credit_Limit || parsed.totalCreditLimit || 0)
-          : parsed.totalCreditLimit,
-        totalDebt: summary
-          ? Number(summary.Total_Used || parsed.totalDebt || 0)
-          : parsed.totalDebt,
-        accounts: mergedAccounts.length > 0 ? mergedAccounts : parsed.accounts,
-        delinquencies:
-          mergedDelinquencies.length > 0
-            ? mergedDelinquencies
-            : parsed.delinquencies,
-      } as CreditReportData;
-    } catch {
-      // If sync/hydration fails, keep parsed Claude data visible
-      setUploadMessage("AECB upload failed. Showing analyzed data only.");
-      return parsed;
-    } finally {
-      setAecbSyncing(false);
-    }
-  };
+  // ── Analyze PDF ──────────────────────────────────────────────────────────
 
   const analyzeFile = async (f: File) => {
     setLoading(true);
     setError(null);
-    setUploadMessage(null);
     setData(null);
+    setSubmitDone(false);
+    setSubmitError(null);
+    setReturnedTxnNo(null);
+    setLoadingStage("Converting PDF to base64…");
+
     try {
       const base64 = await fileToBase64(f);
+
+      setLoadingStage("full extraction (25+ pages)…");
+
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -526,7 +776,7 @@ export function CreditScore() {
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 4000,
+          max_tokens: 64000,
           system: SYSTEM_PROMPT,
           messages: [
             {
@@ -542,29 +792,46 @@ export function CreditScore() {
                 },
                 {
                   type: "text",
-                  text: "Analyze this credit report and return the JSON as instructed.",
+                  text: `Analyze this AECB credit report PDF completely. 
+IMPORTANT: This is a 25+ page document. You MUST read EVERY page and extract EVERY record:
+- All credit facilities (loans, mortgages, auto loans) with their full history
+- All credit card facilities with their full history  
+- All telecom facilities with their full history
+- All salary history entries
+- All return cheques
+- All identity documents
+- Everything in the overview/summary tables
+
+Return the complete JSON as instructed. Do not truncate or stop early.`,
                 },
               ],
             },
           ],
         }),
       });
+
+      setLoadingStage("Parsing extracted data…");
       const result = await response.json();
+      if (result.error)
+        throw new Error(result.error.message || "Claude API error");
+
       const text: string =
         result.content?.find((c: { type: string }) => c.type === "text")
           ?.text ?? "";
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed: CreditReportData = JSON.parse(clean);
-      setData(parsed);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No JSON found in Claude response");
 
-      const txnNumber = resolveTransactionNumber(parsed.reportNumber);
-      const txnText = String(txnNumber);
-      setTransactionNumber(txnText);
-      setPreparedRequests(buildAecbRequests(parsed, txnNumber));
-    } catch {
-      setError("Failed to analyze the credit report. Please try again.");
+      const parsed: AECBFullData = JSON.parse(jsonMatch[0]);
+      setData(parsed);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Extraction failed: ${err.message}`
+          : "Failed to analyze the credit report. Please try again.",
+      );
     }
     setLoading(false);
+    setLoadingStage("");
   };
 
   const handleFile = (f: File | null | undefined) => {
@@ -573,32 +840,75 @@ export function CreditScore() {
       return;
     }
     setFile(f);
-    setPreparedRequests([]);
-    setTransactionNumber(null);
     analyzeFile(f);
   };
 
-  const submitPreparedRequests = async () => {
-    if (!data || !transactionNumber || preparedRequests.length === 0) {
-      setError("No prepared payloads to upload.");
-      return;
+  // ── Submit ───────────────────────────────────────────────────────────────
+
+  const handleSubmit = async () => {
+    if (!data) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitDone(false);
+    setReturnedTxnNo(null);
+    setSubmitStage("Preparing payload…");
+
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      setSubmitStage("Uploading to all 21 AECB tables…");
+
+      const res = await fetch(`${BASE_URL}/upload-aecb-data`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      setSubmitStage("Verifying response…");
+      await new Promise((r) => setTimeout(r, 800));
+
+      const json = await res.json();
+      if (!res.ok || !json.success)
+        throw new Error(json.message || "Upload failed");
+
+      // Ensure at least 2s of visible loader
+      await new Promise((r) => setTimeout(r, 700));
+
+      setReturnedTxnNo(json.transaction_no ?? null);
+      setSubmitDone(true);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Failed to submit. Please try again.",
+      );
     }
-    const merged = await syncAecbAndHydrate(data, transactionNumber);
-    setData(merged);
+    setSubmitting(false);
+    setSubmitStage("");
   };
 
-  const copyToClipboard = async () => {
+  const copyJSON = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError("Failed to copy JSON to clipboard");
+      /* ignore */
     }
   };
 
-  const fmt = (n: number) =>
-    n?.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  // ── Helpers for preview ──────────────────────────────────────────────────
+
+  const getRecordCount = (key: keyof AECBFullData): number => {
+    if (!data) return 0;
+    const val = data[key];
+    if (Array.isArray(val)) return val.length;
+    return val ? 1 : 0;
+  };
+
+  const getTotalRecords = (): number => {
+    if (!data) return 0;
+    return TABLE_META.reduce((sum, t) => sum + getRecordCount(t.key), 0);
+  };
 
   const scoreArc = (score: number) => {
     const pct = Math.min(Math.max(score, 300), 850);
@@ -607,9 +917,13 @@ export function CreditScore() {
     return { total, offset: total * (1 - normalized) };
   };
 
+  const personal = data?.aecbPersonalDetailsModel;
+
+  // ── Render ───────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-5">
-      {/* Upload Zone */}
+      {/* ── Upload Zone ── */}
       <div
         onClick={() => inputRef.current?.click()}
         onDragOver={(e: DragEvent<HTMLDivElement>) => {
@@ -634,7 +948,6 @@ export function CreditScore() {
             handleFile(e.target.files?.[0])
           }
         />
-
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-500">
           <svg
             className="h-6 w-6"
@@ -650,7 +963,6 @@ export function CreditScore() {
             />
           </svg>
         </div>
-
         {file ? (
           <div className="text-center">
             <p className="text-sm font-medium text-blue-600">{file.name}</p>
@@ -661,28 +973,28 @@ export function CreditScore() {
         ) : (
           <div className="text-center">
             <p className="text-sm font-medium text-foreground">
-              Drop your credit report PDF here
+              Drop your AECB credit report PDF here
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              or click to browse
+              or click to browse · supports 25+ page reports
             </p>
           </div>
         )}
       </div>
 
-      {/* Error */}
+      {/* ── Error ── */}
       {error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      {/* Loading */}
+      {/* ── Loading ── */}
       {loading && (
-        <div className="rounded-lg border bg-card p-8 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+        <div className="rounded-lg border bg-card p-8 text-center space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
             <svg
-              className="h-5 w-5 animate-spin text-blue-500"
+              className="h-6 w-6 animate-spin text-blue-500"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -701,613 +1013,371 @@ export function CreditScore() {
               />
             </svg>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Analyzing credit report…
-          </p>
-        </div>
-      )}
-
-      {aecbSyncing && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          Syncing extracted data to AECB API tables...
-        </div>
-      )}
-
-      {uploadMessage && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          {uploadMessage}
-        </div>
-      )}
-
-      {data && preparedRequests.length > 0 && (
-        <div className="rounded-lg border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h4 className="text-sm font-semibold text-foreground">
-                AECB API Payload Preview
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                Review the payloads below before submitting to all AECB APIs.
-              </p>
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Extracting full AECB report…
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{loadingStage}</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              25+ page reports may take 30–60 seconds
+            </p>
+          </div>
+          <div className="mx-auto max-w-xs space-y-1.5">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full animate-pulse rounded-full bg-blue-400"
+                style={{ width: "65%" }}
+              />
             </div>
-            <button
-              type="button"
-              onClick={submitPreparedRequests}
-              disabled={aecbSyncing}
-              className="rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {aecbSyncing
-                ? "Uploading..."
-                : `Upload ${preparedRequests.length} Payloads`}
-            </button>
-          </div>
-
-          <div className="max-h-72 space-y-2 overflow-auto rounded-md border p-2">
-            {preparedRequests.map((req, i) => (
-              <details
-                key={`${req.endpoint}-${i}`}
-                className="rounded border p-2"
-              >
-                <summary className="cursor-pointer text-xs font-medium text-foreground">
-                  {req.endpoint}
-                </summary>
-                <pre className="mt-2 overflow-auto rounded bg-muted p-2 text-[11px]">
-                  {JSON.stringify(req.body, null, 2)}
-                </pre>
-              </details>
-            ))}
+            <p className="text-[10px] text-muted-foreground">
+              Extracting all 21 table groups…
+            </p>
           </div>
         </div>
       )}
 
-      {/* Results */}
-      {data && (
+      {/* ── Results ── */}
+      {data && !loading && (
         <div className="space-y-4">
-          {/* Header with Copy Button */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">
-                Credit Report Analysis
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Report Date: {data.reportDate}
-              </p>
-              {transactionNumber && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Transaction: {transactionNumber}
-                </p>
+          {/* ── Summary header ── */}
+          <div className="rounded-lg border bg-card p-4 flex flex-wrap items-center gap-4 justify-between">
+            <div className="flex items-center gap-4">
+              {personal && (
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 text-lg font-bold">
+                    {personal.First_Name?.[0] ?? "?"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {personal.Full_Name ||
+                        `${personal.First_Name} ${personal.Last_Name}`}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      CB Subject: {personal.CB_Subject_Id || "—"}
+                    </p>
+                  </div>
+                </div>
               )}
-            </div>
-            <button
-              onClick={copyToClipboard}
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                copied
-                  ? "bg-green-100 text-green-700"
-                  : "bg-blue-100 text-blue-700 hover:bg-blue-200"
-              }`}
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-              {copied ? "Copied!" : "Copy JSON"}
-            </button>
-          </div>
-
-          {/* Consumer Info */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border bg-card p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Consumer Name
-              </p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {data.consumerName}
-              </p>
-            </div>
-            {data.dateOfBirth && (
-              <div className="rounded-lg border bg-card p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Date of Birth
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  {data.dateOfBirth}
-                </p>
-              </div>
-            )}
-            <div className="rounded-lg border bg-card p-4 sm:col-span-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Address
-              </p>
-              <p className="mt-1 text-sm text-foreground">{data.address}</p>
-            </div>
-          </div>
-
-          {/* Credit Score Card */}
-          <div className="rounded-lg border bg-card p-5 space-y-4">
-            <h4 className="text-sm font-semibold text-foreground">
-              Credit Score
-            </h4>
-
-            <div className="flex items-center gap-5">
-              <svg
-                width={100}
-                height={58}
-                viewBox="0 0 120 70"
-                className="shrink-0"
-              >
-                <path
-                  d="M10,65 A50,50 0 0,1 110,65"
-                  fill="none"
-                  stroke="hsl(var(--muted))"
-                  strokeWidth={10}
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M10,65 A50,50 0 0,1 110,65"
-                  fill="none"
-                  stroke={ratingHex(data.creditScore.rating)}
-                  strokeWidth={10}
-                  strokeLinecap="round"
-                  strokeDasharray={`${scoreArc(data.creditScore.score).total} ${scoreArc(data.creditScore.score).total}`}
-                  strokeDashoffset={scoreArc(data.creditScore.score).offset}
-                />
-                <text
-                  x="60"
-                  y="60"
-                  textAnchor="middle"
-                  fill={ratingHex(data.creditScore.rating)}
-                  fontSize="18"
-                  fontWeight="700"
-                >
-                  {data.creditScore.score}
-                </text>
-              </svg>
-              <div className="space-y-1">
-                <p
-                  className={`text-xl font-bold ${ratingTextColor(data.creditScore.rating)}`}
-                >
-                  {data.creditScore.rating}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {data.creditScore.scoreRange}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Credit Metrics */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {[
-              {
-                label: "Total Debt",
-                value: data.totalDebt,
-                format: "$",
-              },
-              {
-                label: "Credit Limit",
-                value: data.totalCreditLimit,
-                format: "$",
-              },
-              {
-                label: "Credit Utilization",
-                value: data.creditUtilization,
-                format: "%",
-              },
-            ].map((item) => (
-              <div key={item.label} className="rounded-lg border bg-card p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {item.label}
-                </p>
-                <p className="mt-1 text-base font-bold text-foreground tabular-nums">
-                  {item.format === "$" ? "$" : ""}
-                  {fmt(item.value)}
-                  {item.format === "%" ? "%" : ""}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Accounts */}
-          {data.accounts && data.accounts.length > 0 && (
-            <div className="rounded-lg border bg-card overflow-hidden">
-              <div className="flex items-center justify-between border-b px-5 py-3">
-                <h4 className="text-sm font-semibold text-foreground">
-                  Credit Accounts
-                </h4>
-                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                  {data.accounts.length} accounts
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      {[
-                        "Type",
-                        "Account #",
-                        "Status",
-                        "Limit",
-                        "Balance",
-                        "Payment",
-                      ].map((h) => (
-                        <th
-                          key={h}
-                          className={`px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground
-                            ${h === "Type" || h === "Account #" ? "text-left" : "text-right"}`}
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {data.accounts.map((account, i) => (
-                      <tr
-                        key={i}
-                        className="transition-colors hover:bg-accent/40"
-                      >
-                        <td className="px-4 py-2.5 text-xs text-foreground">
-                          {account.accountType}
-                        </td>
-                        <td className="px-4 py-2.5 text-xs text-muted-foreground font-mono">
-                          {account.accountNumber}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${statusBadge(account.status)}`}
-                          >
-                            {account.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs font-medium tabular-nums text-foreground">
-                          {account.creditLimit
-                            ? `$${fmt(account.creditLimit)}`
-                            : "—"}
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs font-medium tabular-nums text-foreground">
-                          ${fmt(account.currentBalance)}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${statusBadge(account.paymentStatus)}`}
-                          >
-                            {account.paymentStatus}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Recommendations */}
-          {data.recommendations && data.recommendations.length > 0 && (
-            <div className="rounded-lg border bg-card p-4">
-              <h4 className="text-sm font-semibold text-foreground mb-3">
-                Recommendations
-              </h4>
-              <ul className="space-y-2">
-                {data.recommendations.map((rec, i) => (
-                  <li
-                    key={i}
-                    className="flex gap-2 text-xs text-muted-foreground"
+              {personal && (
+                <div className="flex items-center gap-3">
+                  <svg
+                    width={80}
+                    height={46}
+                    viewBox="0 0 120 70"
+                    className="shrink-0"
                   >
-                    <span className="text-blue-500 mt-1">✓</span>
-                    <span>{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Delinquencies */}
-          {data.delinquencies && data.delinquencies.length > 0 && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-              <h4 className="text-sm font-semibold text-red-900 mb-3">
-                Delinquencies ({data.delinquencies.length})
-              </h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-3 py-2 text-left font-medium">
-                        Account
-                      </th>
-                      <th className="px-3 py-2 text-left font-medium">
-                        Status
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Days Late
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Amount
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.delinquencies.map((delin, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-3 py-2">{delin.account}</td>
-                        <td className="px-3 py-2">{delin.status}</td>
-                        <td className="px-3 py-2 text-right">
-                          {delin.daysLate}
-                        </td>
-                        <td className="px-3 py-2 text-right font-semibold">
-                          ${fmt(delin.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Charge Offs */}
-          {data.chargeOffs && data.chargeOffs.length > 0 && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-              <h4 className="text-sm font-semibold text-red-900 mb-3">
-                Charge Offs ({data.chargeOffs.length})
-              </h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-3 py-2 text-left font-medium">
-                        Creditor
-                      </th>
-                      <th className="px-3 py-2 text-left font-medium">Date</th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Amount
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.chargeOffs.map((chargeOff, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-3 py-2">{chargeOff.creditor}</td>
-                        <td className="px-3 py-2">{chargeOff.date}</td>
-                        <td className="px-3 py-2 text-right font-semibold">
-                          ${fmt(chargeOff.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Collections */}
-          {data.collections && data.collections.length > 0 && (
-            <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
-              <h4 className="text-sm font-semibold text-orange-900 mb-3">
-                Collections ({data.collections.length})
-              </h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-3 py-2 text-left font-medium">
-                        Creditor
-                      </th>
-                      <th className="px-3 py-2 text-left font-medium">Date</th>
-                      <th className="px-3 py-2 text-left font-medium">
-                        Status
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Amount
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.collections.map((collection, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-3 py-2">{collection.creditor}</td>
-                        <td className="px-3 py-2">{collection.date}</td>
-                        <td className="px-3 py-2">{collection.status}</td>
-                        <td className="px-3 py-2 text-right font-semibold">
-                          ${fmt(collection.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Late Payments */}
-          {data.latePayments && data.latePayments.length > 0 && (
-            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-              <h4 className="text-sm font-semibold text-yellow-900 mb-3">
-                Late Payments ({data.latePayments.length})
-              </h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-3 py-2 text-left font-medium">
-                        Creditor
-                      </th>
-                      <th className="px-3 py-2 text-left font-medium">Date</th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Days Late
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.latePayments.map((late, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-3 py-2">{late.creditor}</td>
-                        <td className="px-3 py-2">{late.date}</td>
-                        <td className="px-3 py-2 text-right font-semibold">
-                          {late.daysLate}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Bankruptcies */}
-          {data.bankruptcies && data.bankruptcies.length > 0 && (
-            <div className="rounded-lg border border-red-300 bg-red-100/50 p-4">
-              <h4 className="text-sm font-semibold text-red-900 mb-3">
-                Bankruptcies ({data.bankruptcies.length})
-              </h4>
-              <div className="space-y-3">
-                {data.bankruptcies.map((bankruptcy, i) => (
-                  <div key={i} className="border-l-4 border-red-500 pl-3">
-                    <p className="font-semibold text-sm text-red-900">
-                      {bankruptcy.type} • {bankruptcy.date}
+                    <path
+                      d="M10,65 A50,50 0 0,1 110,65"
+                      fill="none"
+                      stroke="hsl(var(--muted))"
+                      strokeWidth={10}
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M10,65 A50,50 0 0,1 110,65"
+                      fill="none"
+                      stroke={ratingHex(personal.Rating)}
+                      strokeWidth={10}
+                      strokeLinecap="round"
+                      strokeDasharray={`${scoreArc(personal.Credit_Score).total} ${scoreArc(personal.Credit_Score).total}`}
+                      strokeDashoffset={scoreArc(personal.Credit_Score).offset}
+                    />
+                    <text
+                      x="60"
+                      y="60"
+                      textAnchor="middle"
+                      fill={ratingHex(personal.Rating)}
+                      fontSize="16"
+                      fontWeight="700"
+                    >
+                      {personal.Credit_Score}
+                    </text>
+                  </svg>
+                  <div>
+                    <p
+                      className={`text-base font-bold ${ratingTextColor(personal.Rating)}`}
+                    >
+                      {personal.Rating}
                     </p>
-                    <p className="text-xs text-red-700 mt-1">
-                      {bankruptcy.details}
+                    <p className="text-[10px] text-muted-foreground">
+                      Credit Score
                     </p>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Inquiries */}
-          {data.inquiries && data.inquiries.length > 0 && (
-            <div className="rounded-lg border bg-card p-4">
-              <h4 className="text-sm font-semibold text-foreground mb-3">
-                Credit Inquiries ({data.inquiries.length})
-              </h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="px-3 py-2 text-left font-medium">Date</th>
-                      <th className="px-3 py-2 text-left font-medium">
-                        Creditor
-                      </th>
-                      <th className="px-3 py-2 text-left font-medium">Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.inquiries.map((inquiry, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-3 py-2">{inquiry.date}</td>
-                        <td className="px-3 py-2">{inquiry.creditor}</td>
-                        <td className="px-3 py-2">
-                          <span
-                            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              inquiry.type === "Hard"
-                                ? "bg-orange-100 text-orange-700"
-                                : "bg-blue-100 text-blue-700"
-                            }`}
-                          >
-                            {inquiry.type}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Public Records */}
-          {data.publicRecords && data.publicRecords.length > 0 && (
-            <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-              <h4 className="text-sm font-semibold text-purple-900 mb-3">
-                Public Records ({data.publicRecords.length})
-              </h4>
-              <div className="space-y-3">
-                {data.publicRecords.map((record, i) => (
-                  <div key={i} className="border-l-4 border-purple-500 pl-3">
-                    <p className="font-semibold text-sm text-purple-900">
-                      {record.type} • {record.date}
-                    </p>
-                    <p className="text-xs text-purple-700 mt-1">
-                      {record.details}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Payment History */}
-          {data.paymentHistory && data.paymentHistory.length > 0 && (
-            <div className="rounded-lg border bg-card overflow-hidden">
-              <div className="flex items-center justify-between border-b px-5 py-3">
-                <h4 className="text-sm font-semibold text-foreground">
-                  Payment History
-                </h4>
-                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                  {data.paymentHistory.length} entries
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="px-4 py-2.5 text-left font-medium">
-                        Date
-                      </th>
-                      <th className="px-4 py-2.5 text-left font-medium">
-                        Account
-                      </th>
-                      <th className="px-4 py-2.5 text-left font-medium">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.paymentHistory.slice(0, 50).map((payment, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-4 py-2.5">{payment.date}</td>
-                        <td className="px-4 py-2.5">{payment.account}</td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${statusBadge(payment.status)}`}
-                          >
-                            {payment.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {data.paymentHistory.length > 50 && (
-                <div className="px-4 py-2 text-xs text-muted-foreground bg-muted/30 text-center">
-                  Showing 50 of {data.paymentHistory.length} entries
                 </div>
               )}
             </div>
-          )}
-
-          {/* Summary Notes */}
-          {data.summaryNotes && (
-            <div className="rounded-lg border bg-card p-4">
-              <h4 className="text-sm font-semibold text-foreground mb-2">
-                Summary
-              </h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {data.summaryNotes}
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-medium text-green-700">
+                ✓ {getTotalRecords()} total records across 21 tables
+              </span>
+              <button
+                onClick={copyJSON}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${copied ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+              >
+                {copied ? "✓ Copied" : "Copy JSON"}
+              </button>
             </div>
-          )}
+          </div>
+
+          {/* ── Table tiles ── */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {TABLE_META.map((t) => {
+              const count = getRecordCount(t.key);
+              const isExpanded = expandedTable === t.key;
+              const colorCls = COLOR_MAP[t.color] ?? COLOR_MAP.blue;
+              const val = data[t.key];
+              const isArray = Array.isArray(val);
+
+              return (
+                <div
+                  key={t.key}
+                  className="rounded-lg border bg-card overflow-hidden"
+                >
+                  <button
+                    onClick={() => setExpandedTable(isExpanded ? null : t.key)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-accent/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-base">{t.icon}</span>
+                      <span className="text-[11px] font-medium text-foreground truncate">
+                        {t.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                      <span
+                        className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${colorCls}`}
+                      >
+                        {count}
+                      </span>
+                      <svg
+                        className={`h-3 w-3 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t bg-muted/20 max-h-64 overflow-auto">
+                      {count === 0 ? (
+                        <p className="px-3 py-2 text-[11px] text-muted-foreground italic">
+                          No records extracted
+                        </p>
+                      ) : isArray ? (
+                        (val as Record<string, unknown>[]).map((row, i) => (
+                          <div
+                            key={i}
+                            className="border-b last:border-0 px-3 py-2 space-y-0.5"
+                          >
+                            {Object.entries(row).map(([k, v]) => (
+                              <div key={k} className="flex gap-2 text-[10px]">
+                                <span className="text-muted-foreground shrink-0 w-32 truncate">
+                                  {k}:
+                                </span>
+                                <span className="text-foreground font-medium truncate">
+                                  {String(v ?? "—")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 space-y-0.5">
+                          {Object.entries(val as Record<string, unknown>).map(
+                            ([k, v]) => (
+                              <div key={k} className="flex gap-2 text-[10px]">
+                                <span className="text-muted-foreground shrink-0 w-36 truncate">
+                                  {k}:
+                                </span>
+                                <span className="text-foreground font-medium truncate">
+                                  {String(v ?? "—")}
+                                </span>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── Submit Panel ── */}
+          <div className="rounded-lg border bg-card p-5 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Submit to Database
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  POST /api/upload-aecb-data · {getTotalRecords()} records
+                  across 21 tables
+                </p>
+              </div>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || submitDone}
+                className="rounded-md bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 min-w-[100px]"
+              >
+                {submitting
+                  ? "Uploading…"
+                  : submitDone
+                    ? "✓ Submitted"
+                    : "Submit All"}
+              </button>
+            </div>
+
+            {/* Submitting loader */}
+            {submitting && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <svg
+                    className="h-5 w-5 animate-spin text-blue-500 shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
+                  </svg>
+                  <div>
+                    <p className="text-xs font-semibold text-blue-800">
+                      Uploading to AECB tables…
+                    </p>
+                    <p className="text-[11px] text-blue-600 mt-0.5">
+                      {submitStage}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {["Personal & Contact", "Facilities", "History & Telco"].map(
+                    (label, i) => (
+                      <div
+                        key={label}
+                        className="rounded bg-blue-100 px-2 py-1.5 text-center"
+                      >
+                        <div className="flex justify-center mb-1">
+                          <svg
+                            className={`h-3.5 w-3.5 ${i === 0 ? "text-green-500" : "animate-spin text-blue-400"}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            {i === 0 ? (
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                                stroke="currentColor"
+                              />
+                            ) : (
+                              <>
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v8z"
+                                />
+                              </>
+                            )}
+                          </svg>
+                        </div>
+                        <p className="text-[10px] text-blue-700 font-medium">
+                          {label}
+                        </p>
+                      </div>
+                    ),
+                  )}
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-blue-200">
+                  <div
+                    className="h-full animate-pulse rounded-full bg-blue-500"
+                    style={{ width: "70%" }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Endpoint status */}
+            {!submitting && (
+              <div
+                className={`rounded-lg border px-4 py-3 flex items-center justify-between transition-colors
+                ${submitDone ? "border-green-200 bg-green-50" : submitError ? "border-red-200 bg-red-50" : "border-border bg-muted/30"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`text-base ${submitDone ? "text-green-600" : submitError ? "text-red-500" : "text-muted-foreground"}`}
+                  >
+                    {submitDone ? "✓" : submitError ? "✗" : "○"}
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      POST /api/upload-aecb-data
+                    </p>
+                    <p className="text-[10px] font-mono text-muted-foreground">
+                      {BASE_URL}/api/upload-aecb-data
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`text-[10px] font-medium px-2 py-0.5 rounded-full
+                  ${submitDone ? "bg-green-100 text-green-700" : submitError ? "bg-red-100 text-red-600" : "bg-muted text-muted-foreground"}`}
+                >
+                  {submitDone ? "201 Created" : submitError ? "error" : "idle"}
+                </span>
+              </div>
+            )}
+
+            {submitError && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
+                {submitError}
+              </div>
+            )}
+
+            {submitDone && (
+              <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
+                <span className="text-base mt-0.5">✓</span>
+                <div>
+                  <p className="font-semibold">
+                    All 21 AECB tables populated successfully
+                  </p>
+                  {returnedTxnNo && (
+                    <p className="mt-0.5 text-green-600">
+                      Transaction #{returnedTxnNo} · {getTotalRecords()} records
+                      saved
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
